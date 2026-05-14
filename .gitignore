@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+apps/api/dist/
+apps/web/dist/
+
+# Local secrets / env (never commit)
+.env
+.env.*
+!.env.example

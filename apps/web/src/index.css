@@ -1,0 +1,214 @@
+/**
+ * Global design surface — private network console.
+ * 专网控制台全局视觉：冷色 slate + 青绿强调，与 Ant Design token 对齐。
+ */
+:root {
+  --app-canvas: #e4ebf2;
+  --app-canvas-mid: #dbe4ee;
+  --app-surface: #ffffff;
+  --app-sider-gradient-start: #070d18;
+  --app-sider-gradient-end: #121d32;
+  --app-sider-accent: #2dd4bf;
+  --app-sider-accent-dim: rgba(45, 212, 191, 0.14);
+  --app-sider-text-muted: #8b9cb3;
+  --app-accent-deep: #0f766e;
+  --app-line-subtle: rgba(15, 23, 42, 0.07);
+  --app-shadow-paper:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 12px 32px rgba(15, 23, 42, 0.06);
+  --app-shadow-float:
+    0 8px 30px rgba(15, 23, 42, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset;
+  --app-font:
+    'Plus Jakarta Sans', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei',
+    'Segoe UI', system-ui, sans-serif;
+  --app-font-mono:
+    'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--app-font);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  color: #0f172a;
+  background: radial-gradient(
+      120% 80% at 100% 0%,
+      rgba(45, 212, 191, 0.06) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      80% 60% at 0% 100%,
+      rgba(14, 116, 144, 0.05) 0%,
+      transparent 50%
+    ),
+    linear-gradient(165deg, var(--app-canvas) 0%, var(--app-canvas-mid) 100%);
+}
+
+/* Main content shell */
+.app-content-paper {
+  background: var(--app-surface);
+  border-radius: 14px;
+  box-shadow: var(--app-shadow-paper);
+  border: 1px solid var(--app-line-subtle);
+  min-height: calc(100vh - 56px - 48px);
+  padding: 26px 32px 40px;
+  position: relative;
+}
+
+.app-content-paper::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  border-radius: 14px 14px 0 0;
+  background: linear-gradient(
+    90deg,
+    var(--app-accent-deep),
+    var(--app-sider-accent),
+    rgba(45, 212, 191, 0.35)
+  );
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .app-content-paper {
+    padding: 18px 16px 28px;
+    border-radius: 12px;
+    min-height: auto;
+  }
+}
+
+/* Sticky top bar */
+.app-shell-header.ant-layout-header {
+  backdrop-filter: saturate(160%) blur(14px);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-bottom: 1px solid var(--app-line-subtle) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.app-shell-header .app-header-title {
+  letter-spacing: -0.02em;
+}
+
+.app-shell-header .app-role-shell {
+  padding: 2px 4px 2px 12px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.app-shell-header .app-status-dot .ant-badge-status-text {
+  font-size: 12px;
+  color: #475569;
+}
+
+/* Page blocks */
+.page-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.page-intro {
+  margin: -4px 0 22px;
+  max-width: 640px;
+  line-height: 1.65;
+}
+
+.dashboard-intro {
+  padding: 4px 0 4px;
+  margin-bottom: 8px;
+  border-left: 3px solid var(--app-accent-deep);
+  padding-left: 16px;
+}
+
+/* Stat / KPI cards */
+.kpi-card.ant-card {
+  border: 1px solid var(--app-line-subtle);
+  border-radius: 14px;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(248, 250, 252, 0.95) 100%
+  );
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
+  overflow: hidden;
+}
+
+.kpi-card.ant-card .ant-card-head {
+  border-bottom-color: var(--app-line-subtle);
+  font-weight: 600;
+}
+
+.kpi-card.ant-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--app-shadow-float);
+  border-color: rgba(45, 212, 191, 0.25);
+}
+
+.kpi-card.ant-card .ant-statistic-title {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Tables — slightly tighter header */
+.ant-table-thead > tr > th {
+  font-weight: 600;
+  color: #334155 !important;
+}
+
+.ant-table-tbody > tr > td {
+  color: #1e293b;
+}
+
+/* Links inside dark sider menu */
+.ant-layout-sider-dark .ant-menu-dark.ant-menu-inline .ant-menu-item a {
+  color: inherit;
+}
+
+.ant-layout-sider-dark
+  .ant-menu-dark.ant-menu-inline
+  .ant-menu-item-selected
+ a {
+  color: #f8fafc;
+}
+
+/* Code / JSON */
+.pre-json {
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 12px;
+  line-height: 1.55;
+  font-family: var(--app-font-mono);
+  background: linear-gradient(180deg, #f1f5f9 0%, #e8eef4 100%);
+  border-radius: 10px;
+  border: 1px solid #dce3ec;
+  max-height: 220px;
+  overflow: auto;
+}
+
+/* Modal — configuration receipt */
+.config-receipt-modal .ant-modal-header {
+  border-bottom: 1px solid var(--app-line-subtle);
+  padding-bottom: 16px;
+}
+
+.config-receipt-modal .ant-modal-title {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
