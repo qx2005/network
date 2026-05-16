@@ -1,4 +1,4 @@
-import { App, Button, Select, Space, Table, Typography } from 'antd'
+import { App, Button, Empty, Select, Skeleton, Table, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
 import { apiGet, apiSend } from '../../api/client'
@@ -38,21 +38,23 @@ export function RedcapDevicesPage() {
   }, [])
 
   const columns: ColumnsType<RedCapDevice> = [
-    { title: '别名', dataIndex: 'alias' },
-    { title: 'SUPI', dataIndex: 'supi', ellipsis: true },
-    { title: '切片', dataIndex: 'sliceId' },
-    { title: 'VN', dataIndex: 'vnId' },
-    { title: 'IP', dataIndex: 'ipAddress' },
-    { title: 'RRC', dataIndex: 'rrcState' },
-    { title: '信号', dataIndex: 'signalQuality' },
-    { title: 'eDRX', dataIndex: 'edrxState' },
+    { title: '别名', dataIndex: 'alias', width: 120 },
+    { title: 'SUPI', dataIndex: 'supi', width: 160, ellipsis: true },
+    { title: '切片', dataIndex: 'sliceId', width: 140, ellipsis: true },
+    { title: 'VN', dataIndex: 'vnId', width: 100, ellipsis: true },
+    { title: 'IP', dataIndex: 'ipAddress', width: 120 },
+    { title: 'RRC', dataIndex: 'rrcState', width: 100 },
+    { title: '信号', dataIndex: 'signalQuality', width: 100 },
+    { title: 'eDRX', dataIndex: 'edrxState', width: 110, ellipsis: true },
     {
-      title: '套用省电模板',
+      title: '省电模板',
       key: 'prof',
+      width: 180,
       render: (_, r) => (
-        <Space>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <Select
-            style={{ minWidth: 220 }}
+            size="small"
+            style={{ width: '100%' }}
             placeholder="选择模板"
             value={profilePick[r.id] ?? r.powerProfileId}
             options={profiles.map((p) => ({ value: p.id, label: p.templateName }))}
@@ -60,6 +62,8 @@ export function RedcapDevicesPage() {
           />
           <Button
             type="link"
+            size="small"
+            style={{ padding: 0, alignSelf: 'flex-start' }}
             onClick={async () => {
               const pid = profilePick[r.id] ?? r.powerProfileId
               if (!pid) {
@@ -85,7 +89,7 @@ export function RedcapDevicesPage() {
           >
             应用
           </Button>
-        </Space>
+        </div>
       ),
     },
   ]
@@ -98,7 +102,22 @@ export function RedcapDevicesPage() {
       <Button onClick={() => void load()} style={{ marginBottom: 12 }} loading={loading}>
         刷新
       </Button>
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      {loading && rows.length === 0 ? (
+        <div style={{ padding: '16px 0' }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} active title={false} paragraph={{ rows: 1 }} style={{ marginBottom: 8 }} />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="app-empty-state">
+          <Empty description="暂无在线终端" />
+          <Button style={{ marginTop: 16 }} onClick={() => void load()}>
+            刷新
+          </Button>
+        </div>
+      ) : (
+        <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} scroll={{ x: 1100 }} />
+      )}
       <TruthFeedbackModal
         open={fbOpen}
         title="RedCap 省电策略 — 配置回执"

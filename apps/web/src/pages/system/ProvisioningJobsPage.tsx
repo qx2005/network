@@ -1,4 +1,4 @@
-import { Button, Space, Table, Typography } from 'antd'
+import { Button, Empty, Skeleton, Space, Table, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
 import { apiGet } from '../../api/client'
@@ -84,7 +84,19 @@ export function ProvisioningJobsPage() {
           立即刷新
         </Button>
       </Space>
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      {loading && rows.length === 0 ? (
+        <div style={{ padding: '16px 0' }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} active title={false} paragraph={{ rows: 1 }} style={{ marginBottom: 8 }} />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="app-empty-state">
+          <Empty description="暂无下发任务" />
+        </div>
+      ) : (
+        <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      )}
       <TruthFeedbackModal
         open={fbOpen}
         title="下发任务 — 配置回执"

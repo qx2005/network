@@ -1,4 +1,4 @@
-import { App, Button, Form, Input, InputNumber, Space, Switch, Table, Typography } from 'antd'
+import { App, Button, Card, Empty, Form, Input, InputNumber, Skeleton, Space, Switch, Table, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
 import { apiGet, apiSend } from '../../api/client'
@@ -48,7 +48,22 @@ export function PowerProfilesPage() {
           刷新
         </Button>
       </Space>
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      {loading && rows.length === 0 ? (
+        <div style={{ padding: '16px 0' }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} active title={false} paragraph={{ rows: 1 }} style={{ marginBottom: 8 }} />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="app-empty-state">
+          <Empty description="暂无省电模板" />
+          <Button type="primary" style={{ marginTop: 16 }} onClick={() => setOpen(true)}>
+            新建模板
+          </Button>
+        </div>
+      ) : (
+        <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      )}
       {open ? (
         <div style={{ marginTop: 16 }}>
           <Typography.Title level={5}>新建模板</Typography.Title>
@@ -77,27 +92,31 @@ export function PowerProfilesPage() {
               heartbeatRecommendedSeconds: 30,
             }}
           >
-            <Form.Item name="templateName" label="模板名" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="deviceTypeTag" label="设备类型标签">
-              <Input placeholder="level_meter / thermometer" />
-            </Form.Item>
-            <Form.Item name="edrxCycleSeconds" label="eDRX 周期 (s)">
-              <InputNumber style={{ width: '100%' }} step={0.01} />
-            </Form.Item>
-            <Form.Item name="ptwSeconds" label="PTW (s)">
-              <InputNumber style={{ width: '100%' }} step={0.01} />
-            </Form.Item>
-            <Form.Item name="drxMs" label="DRX (ms)">
-              <InputNumber style={{ width: '100%' }} />
-            </Form.Item>
-            <Form.Item name="psmEnabled" label="PSM" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-            <Form.Item name="heartbeatRecommendedSeconds" label="推荐心跳 (s)">
-              <InputNumber style={{ width: '100%' }} />
-            </Form.Item>
+            <Card className="form-section-card" size="small" title="基本信息">
+              <Form.Item name="templateName" label="模板名" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+              <Form.Item name="deviceTypeTag" label="设备类型标签">
+                <Input placeholder="level_meter / thermometer" />
+              </Form.Item>
+            </Card>
+            <Card className="form-section-card" size="small" title="省电参数">
+              <Form.Item name="edrxCycleSeconds" label="eDRX 周期 (s)">
+                <InputNumber style={{ width: '100%' }} step={0.01} />
+              </Form.Item>
+              <Form.Item name="ptwSeconds" label="PTW (s)">
+                <InputNumber style={{ width: '100%' }} step={0.01} />
+              </Form.Item>
+              <Form.Item name="drxMs" label="DRX (ms)">
+                <InputNumber style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item name="psmEnabled" label="PSM" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="heartbeatRecommendedSeconds" label="推荐心跳 (s)">
+                <InputNumber style={{ width: '100%' }} />
+              </Form.Item>
+            </Card>
             <Space>
               <Button type="primary" htmlType="submit">
                 保存

@@ -2,9 +2,11 @@ import {
   App,
   Button,
   Card,
+  Col,
   Form,
   Input,
   InputNumber,
+  Row,
   Select,
   Space,
   Switch,
@@ -221,65 +223,81 @@ export function SliceEditorPage() {
       </Typography.Title>
       <Card loading={loading} className="kpi-card" variant="borderless">
         <Form form={form} layout="vertical">
-          <Form.Item name="displayName" label="切片显示名" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="description" label="描述">
-            <Input.TextArea rows={3} />
-          </Form.Item>
-          <Form.Item name="sst" label="SST" rules={[{ required: true }]}>
-            <Select
-              options={[
-                { value: 1, label: '1 — eMBB' },
-                { value: 2, label: '2 — uRLLC' },
-                { value: 3, label: '3 — mMTC' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item name="sd" label="SD（可选，6 位 hex）">
-            <Input placeholder="010203" />
-          </Form.Item>
-          <Form.Item name="dnn" label="默认 DNN" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="ladnAllowed" label="允许 LADN" valuePropName="checked">
-            <Switch />
-          </Form.Item>
-          <Space wrap size="large">
-            <Form.Item name="ulGbrMbps" label="上行 GBR（Mbps）">
-              <InputNumber min={0} />
+          <Card className="form-section-card" size="small" title="基本信息">
+            <Form.Item name="displayName" label="切片显示名" rules={[{ required: true }]}>
+              <Input />
             </Form.Item>
-            <Form.Item name="dlGbrMbps" label="下行 GBR（Mbps）">
-              <InputNumber min={0} />
+            <Form.Item name="description" label="描述">
+              <Input.TextArea rows={3} />
             </Form.Item>
-            <Form.Item name="ulMbrMbps" label="上行 MBR（Mbps）">
-              <InputNumber min={0} />
+            <Form.Item name="sst" label="SST" rules={[{ required: true }]}>
+              <Select
+                options={[
+                  { value: 1, label: '1 — eMBB' },
+                  { value: 2, label: '2 — uRLLC' },
+                  { value: 3, label: '3 — mMTC' },
+                ]}
+              />
             </Form.Item>
-            <Form.Item name="dlMbrMbps" label="下行 MBR（Mbps）">
-              <InputNumber min={0} />
+            <Form.Item name="sd" label="SD（可选，6 位 hex）">
+              <Input placeholder="010203" />
             </Form.Item>
-            <Form.Item name="ambrMbps" label="AMBR（Mbps）">
-              <InputNumber min={0} />
+            <Form.Item name="dnn" label="默认 DNN" rules={[{ required: true }]}>
+              <Input />
             </Form.Item>
-          </Space>
-          <Form.Item name="fiveQi" label="5QI">
-            <InputNumber min={1} max={255} />
-          </Form.Item>
-          <Form.Item name="arpLevel" label="ARP / 抢占档位">
-            <Select
-              options={[
-                { value: 'low', label: '低' },
-                { value: 'medium', label: '中' },
-                { value: 'high', label: '高' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item
-            name="memberGroupIds"
-            label="成员分组 ID（多选字符串，对应 RedCap/CPE 分组）"
-          >
-            <Select mode="tags" placeholder="grp-sensors-east" tokenSeparators={[',']} />
-          </Form.Item>
+            <Form.Item name="ladnAllowed" label="允许 LADN" valuePropName="checked">
+              <Switch />
+            </Form.Item>
+          </Card>
+          <Card className="form-section-card" size="small" title="QoS 参数">
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="ulGbrMbps" label="上行 GBR（Mbps）">
+                  <InputNumber min={0} style={{ width: '100%' }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="dlGbrMbps" label="下行 GBR（Mbps）">
+                  <InputNumber min={0} style={{ width: '100%' }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="ulMbrMbps" label="上行 MBR（Mbps）">
+                  <InputNumber min={0} style={{ width: '100%' }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="dlMbrMbps" label="下行 MBR（Mbps）">
+                  <InputNumber min={0} style={{ width: '100%' }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="ambrMbps" label="AMBR（Mbps）">
+                  <InputNumber min={0} style={{ width: '100%' }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item name="fiveQi" label="5QI">
+              <InputNumber min={1} max={255} />
+            </Form.Item>
+            <Form.Item name="arpLevel" label="ARP / 抢占档位">
+              <Select
+                options={[
+                  { value: 'low', label: '低' },
+                  { value: 'medium', label: '中' },
+                  { value: 'high', label: '高' },
+                ]}
+              />
+            </Form.Item>
+          </Card>
+          <Card className="form-section-card" size="small" title="成员与分组">
+            <Form.Item
+              name="memberGroupIds"
+              label="成员分组 ID（多选字符串，对应 RedCap/CPE 分组）"
+            >
+              <Select mode="tags" placeholder="grp-sensors-east" tokenSeparators={[',']} />
+            </Form.Item>
+          </Card>
         </Form>
         <Space wrap>
           <Button type="primary" onClick={() => void onSave()} loading={loading}>

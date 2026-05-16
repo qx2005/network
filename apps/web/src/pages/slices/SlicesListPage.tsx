@@ -1,4 +1,4 @@
-import { App, Button, Popconfirm, Space, Table, Tag, Typography } from 'antd'
+import { App, Button, Empty, Popconfirm, Skeleton, Space, Table, Tag, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -103,7 +103,22 @@ export function SlicesListPage() {
           刷新
         </Button>
       </Space>
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      {loading && rows.length === 0 ? (
+        <div style={{ padding: '16px 0' }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} active title={false} paragraph={{ rows: 1 }} style={{ marginBottom: 8 }} />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="app-empty-state">
+          <Empty description="暂无切片实例" />
+          <Button type="primary" style={{ marginTop: 16 }} onClick={() => nav('/slices/new')}>
+            新建切片
+          </Button>
+        </div>
+      ) : (
+        <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      )}
     </div>
   )
 }

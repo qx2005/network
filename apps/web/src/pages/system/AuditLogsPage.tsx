@@ -1,4 +1,4 @@
-import { Button, Table, Typography } from 'antd'
+import { Button, Empty, Skeleton, Table, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
 import { apiGet } from '../../api/client'
@@ -45,7 +45,19 @@ export function AuditLogsPage() {
       <Button onClick={() => void load()} loading={loading} style={{ marginBottom: 12 }}>
         刷新
       </Button>
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      {loading && rows.length === 0 ? (
+        <div style={{ padding: '16px 0' }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} active title={false} paragraph={{ rows: 1 }} style={{ marginBottom: 8 }} />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="app-empty-state">
+          <Empty description="暂无审计记录" />
+        </div>
+      ) : (
+        <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      )}
     </div>
   )
 }

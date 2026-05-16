@@ -3,10 +3,11 @@ import {
   DeploymentUnitOutlined,
   FundProjectionScreenOutlined,
   GlobalOutlined,
+  MenuOutlined,
   RadarChartOutlined,
   SettingOutlined,
 } from '@ant-design/icons'
-import { Badge, Layout, Menu, Select, Space, Typography, theme } from 'antd'
+import { Badge, Breadcrumb, Button, Layout, Menu, Select, Space, Typography, theme } from 'antd'
 import type { CSSProperties, ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
@@ -24,6 +25,7 @@ type MenuItem = {
 
 export function MainLayout() {
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileSiderOpen, setMobileSiderOpen] = useState(false)
   const location = useLocation()
   const { token } = theme.useToken()
   const pageMeta = getPageMeta(location.pathname)
@@ -118,7 +120,11 @@ export function MainLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
+      {mobileSiderOpen && (
+        <div className="app-sider-backdrop" onClick={() => setMobileSiderOpen(false)} />
+      )}
       <Sider
+        className={mobileSiderOpen ? 'app-sider-overlay' : undefined}
         width={246}
         collapsible
         collapsed={collapsed}
@@ -204,33 +210,54 @@ export function MainLayout() {
             position: 'sticky',
             top: 0,
             zIndex: 20,
-            height: 58,
+            height: 'auto',
+            minHeight: 58,
+            paddingBlock: 8,
           }}
         >
-          <div style={{ minWidth: 0 }}>
-            <Typography.Title
-              level={4}
-              className="app-header-title"
-              style={{
-                margin: 0,
-                fontSize: 19,
-                fontWeight: 700,
-                lineHeight: 1.3,
-                color: token.colorTextHeading,
-              }}
-            >
-              {pageMeta.title}
-            </Typography.Title>
-            {pageMeta.subtitle ? (
-              <Typography.Text
-                type="secondary"
-                style={{ fontSize: 13, marginTop: 4, display: 'block', lineHeight: 1.45 }}
+          <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Button
+              type="text"
+              icon={<MenuOutlined />}
+              onClick={() => setMobileSiderOpen(true)}
+              className="app-mobile-menu-btn"
+            />
+            <div style={{ minWidth: 0 }}>
+              {pageMeta.breadcrumb && pageMeta.breadcrumb.length > 0 ? (
+                <Breadcrumb
+                  className="app-breadcrumb"
+                  items={[
+                    { title: <Link to="/">首页</Link> },
+                    ...pageMeta.breadcrumb.map((b) => ({
+                      title: b.path ? <Link to={b.path}>{b.label}</Link> : b.label,
+                    })),
+                  ]}
+                />
+              ) : null}
+              <Typography.Title
+                level={4}
+                className="app-header-title"
+                style={{
+                  margin: 0,
+                  fontSize: 19,
+                  fontWeight: 700,
+                  lineHeight: 1.3,
+                  color: token.colorTextHeading,
+                }}
               >
-                {pageMeta.subtitle}
-              </Typography.Text>
-            ) : null}
+                {pageMeta.title}
+              </Typography.Title>
+              {pageMeta.subtitle ? (
+                <Typography.Text
+                  type="secondary"
+                  style={{ fontSize: 13, marginTop: 4, display: 'block', lineHeight: 1.45 }}
+                >
+                  {pageMeta.subtitle}
+                </Typography.Text>
+              ) : null}
+            </div>
           </div>
-          <Space size="middle" align="center" wrap>
+          <Space size="middle" align="center" wrap style={{ flexShrink: 0 }}>
             <Badge className="app-status-dot" status="success" text="编排链路正常" />
             <div className="app-role-shell">
               <Space size={8} align="center">
@@ -241,7 +268,7 @@ export function MainLayout() {
                   size="middle"
                   value={getRole()}
                   variant="borderless"
-                  style={{ width: 120 }}
+                  style={{ minWidth: 100 }}
                   popupMatchSelectWidth={false}
                   options={[
                     { value: 'viewer', label: '只读' },
@@ -257,7 +284,7 @@ export function MainLayout() {
             </div>
           </Space>
         </Header>
-        <Content style={{ padding: 24, background: 'var(--app-canvas)' }}>
+        <Content style={{ padding: '24px 24px 24px', background: 'var(--app-canvas)', display: 'flex', justifyContent: 'center' }}>
           <div className="app-content-paper">
             <Outlet />
           </div>

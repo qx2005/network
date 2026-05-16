@@ -1,4 +1,4 @@
-import { App, Button, Form, Input, Select, Space, Switch, Table, Typography } from 'antd'
+import { App, Button, Card, Empty, Form, Input, Select, Skeleton, Space, Switch, Table, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
 import { apiGet, apiSend } from '../../api/client'
@@ -69,7 +69,22 @@ export function VnPage() {
           刷新
         </Button>
       </Space>
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      {loading && rows.length === 0 ? (
+        <div style={{ padding: '16px 0' }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} active title={false} paragraph={{ rows: 1 }} style={{ marginBottom: 8 }} />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="app-empty-state">
+          <Empty description="暂无 5G LAN VN 组" />
+          <Button type="primary" style={{ marginTop: 16 }} onClick={() => setOpen(true)}>
+            新建 VN 组
+          </Button>
+        </div>
+      ) : (
+        <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      )}
       {open ? (
         <div style={{ marginTop: 16 }}>
           <Typography.Title level={5}>新建 VN 组</Typography.Title>
@@ -106,39 +121,45 @@ export function VnPage() {
               }
             }}
           >
-            <Form.Item name="displayName" label="显示名" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="technicalId" label="技术 ID（可留空自动生成）">
-              <Input />
-            </Form.Item>
-            <Form.Item name="linkedSliceId" label="关联切片 ID">
-              <Input />
-            </Form.Item>
-            <Form.Item name="memberIds" label="成员终端 ID（逗号分隔）">
-              <Input placeholder="dev-1,dev-2" />
-            </Form.Item>
-            <Form.Item name="ethernetPduAllowed" label="允许以太网 PDU" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-            <Form.Item name="broadcastPolicy" label="广播策略">
-              <Select
-                options={[
-                  { value: 'ALLOW', label: '允许' },
-                  { value: 'LIMITED', label: '受限' },
-                  { value: 'DENY', label: '禁止' },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item name="multicastPolicy" label="组播策略">
-              <Select
-                options={[
-                  { value: 'ALLOW', label: '允许' },
-                  { value: 'LIMITED', label: '受限' },
-                  { value: 'DENY', label: '禁止' },
-                ]}
-              />
-            </Form.Item>
+            <Card className="form-section-card" size="small" title="基本信息">
+              <Form.Item name="displayName" label="显示名" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+              <Form.Item name="technicalId" label="技术 ID（可留空自动生成）">
+                <Input />
+              </Form.Item>
+              <Form.Item name="linkedSliceId" label="关联切片 ID">
+                <Input />
+              </Form.Item>
+            </Card>
+            <Card className="form-section-card" size="small" title="成员配置">
+              <Form.Item name="memberIds" label="成员终端 ID（逗号分隔）">
+                <Input placeholder="dev-1,dev-2" />
+              </Form.Item>
+            </Card>
+            <Card className="form-section-card" size="small" title="策略">
+              <Form.Item name="ethernetPduAllowed" label="允许以太网 PDU" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="broadcastPolicy" label="广播策略">
+                <Select
+                  options={[
+                    { value: 'ALLOW', label: '允许' },
+                    { value: 'LIMITED', label: '受限' },
+                    { value: 'DENY', label: '禁止' },
+                  ]}
+                />
+              </Form.Item>
+              <Form.Item name="multicastPolicy" label="组播策略">
+                <Select
+                  options={[
+                    { value: 'ALLOW', label: '允许' },
+                    { value: 'LIMITED', label: '受限' },
+                    { value: 'DENY', label: '禁止' },
+                  ]}
+                />
+              </Form.Item>
+            </Card>
             <Space>
               <Button type="primary" htmlType="submit">
                 保存

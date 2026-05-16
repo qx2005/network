@@ -83,5 +83,16 @@ export const antdTheme: ThemeConfig = {
     Tag: {
       borderRadiusSM: 6,
     },
+    Breadcrumb: {
+      itemColor: '#64748b',
+      lastItemColor: '#0f172a',
+      linkColor: '#64748b',
+      linkHoverColor: '#0d9488',
+      separatorColor: '#cbd5e1',
+      fontSize: 13,
+    },
+    Statistic: {
+      contentFontSize: 28,
+    },
   },
 }

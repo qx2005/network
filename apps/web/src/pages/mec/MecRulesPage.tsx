@@ -1,4 +1,4 @@
-import { App, Button, Form, Input, InputNumber, Select, Space, Switch, Table, Typography } from 'antd'
+import { App, Button, Card, Empty, Form, Input, InputNumber, Select, Skeleton, Space, Switch, Table, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
 import { apiGet, apiSend } from '../../api/client'
@@ -92,7 +92,22 @@ export function MecRulesPage() {
           刷新
         </Button>
       </Space>
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      {loading && rows.length === 0 ? (
+        <div style={{ padding: '16px 0' }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} active title={false} paragraph={{ rows: 1 }} style={{ marginBottom: 8 }} />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="app-empty-state">
+          <Empty description="暂无分流规则" />
+          <Button type="primary" style={{ marginTop: 16 }} onClick={() => setOpen(true)}>
+            新建规则
+          </Button>
+        </div>
+      ) : (
+        <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      )}
       {open ? (
         <div style={{ marginTop: 16 }}>
           <Typography.Title level={5}>新建规则</Typography.Title>
@@ -154,48 +169,54 @@ export function MecRulesPage() {
               }
             }}
           >
-            <Form.Item name="name" label="规则名" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="priority" label="优先级（数值越小越优先，按实现约定）">
-              <InputNumber style={{ width: '100%' }} />
-            </Form.Item>
-            <Form.Item name="destIpCidrs" label="目的网段 CIDR（逗号分隔）">
-              <Input placeholder="10.45.0.0/16" />
-            </Form.Item>
-            <Form.Item name="srcIpCidrs" label="源网段 CIDR（可选，逗号分隔）">
-              <Input />
-            </Form.Item>
-            <Form.Item name="protocol" label="协议">
-              <Select
-                options={[
-                  { value: 'ANY', label: '任意' },
-                  { value: 'TCP', label: 'TCP' },
-                  { value: 'UDP', label: 'UDP' },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item name="portRanges" label="端口范围（逗号分隔，如 4840 或 8000-8010）">
-              <Input />
-            </Form.Item>
-            <Form.Item name="vnId" label="VN ID（可选）">
-              <Input placeholder="vn-line1" />
-            </Form.Item>
-            <Form.Item name="actionType" label="动作类型">
-              <Select
-                options={[
-                  { value: 'LOCAL_BREAKOUT', label: '本地分流' },
-                  { value: 'NEXT_HOP', label: '下一跳' },
-                  { value: 'MIRROR', label: '镜像' },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item name="nextHop" label="下一跳（可选）">
-              <Input />
-            </Form.Item>
-            <Form.Item name="bypassPublicNetwork" label="绕过公网" valuePropName="checked">
-              <Switch />
-            </Form.Item>
+            <Card className="form-section-card" size="small" title="基本信息">
+              <Form.Item name="name" label="规则名" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+              <Form.Item name="priority" label="优先级（数值越小越优先，按实现约定）">
+                <InputNumber style={{ width: '100%' }} />
+              </Form.Item>
+            </Card>
+            <Card className="form-section-card" size="small" title="匹配条件">
+              <Form.Item name="destIpCidrs" label="目的网段 CIDR（逗号分隔）">
+                <Input placeholder="10.45.0.0/16" />
+              </Form.Item>
+              <Form.Item name="srcIpCidrs" label="源网段 CIDR（可选，逗号分隔）">
+                <Input />
+              </Form.Item>
+              <Form.Item name="protocol" label="协议">
+                <Select
+                  options={[
+                    { value: 'ANY', label: '任意' },
+                    { value: 'TCP', label: 'TCP' },
+                    { value: 'UDP', label: 'UDP' },
+                  ]}
+                />
+              </Form.Item>
+              <Form.Item name="portRanges" label="端口范围（逗号分隔，如 4840 或 8000-8010）">
+                <Input />
+              </Form.Item>
+              <Form.Item name="vnId" label="VN ID（可选）">
+                <Input placeholder="vn-line1" />
+              </Form.Item>
+            </Card>
+            <Card className="form-section-card" size="small" title="动作">
+              <Form.Item name="actionType" label="动作类型">
+                <Select
+                  options={[
+                    { value: 'LOCAL_BREAKOUT', label: '本地分流' },
+                    { value: 'NEXT_HOP', label: '下一跳' },
+                    { value: 'MIRROR', label: '镜像' },
+                  ]}
+                />
+              </Form.Item>
+              <Form.Item name="nextHop" label="下一跳（可选）">
+                <Input />
+              </Form.Item>
+              <Form.Item name="bypassPublicNetwork" label="绕过公网" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </Card>
             <Space>
               <Button type="primary" htmlType="submit">
                 保存

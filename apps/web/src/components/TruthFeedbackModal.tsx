@@ -60,7 +60,7 @@ export function TruthFeedbackModal({
       width={860}
       title={title}
       className="config-receipt-modal"
-      destroyOnClose
+      destroyOnHidden
       styles={{
         body: { paddingTop: 12 },
       }}

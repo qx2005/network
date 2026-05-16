@@ -1,4 +1,4 @@
-import { App, Button, Form, Input, Space, Table, Typography } from 'antd'
+import { App, Button, Card, Empty, Form, Input, Skeleton, Space, Table, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
 import { apiGet, apiSend } from '../../api/client'
@@ -50,7 +50,22 @@ export function MecNodesPage() {
           刷新
         </Button>
       </Space>
-      <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      {loading && rows.length === 0 ? (
+        <div style={{ padding: '16px 0' }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Skeleton key={i} active title={false} paragraph={{ rows: 1 }} style={{ marginBottom: 8 }} />
+          ))}
+        </div>
+      ) : rows.length === 0 ? (
+        <div className="app-empty-state">
+          <Empty description="暂无 MEC 节点" />
+          <Button type="primary" style={{ marginTop: 16 }} onClick={() => setOpen(true)}>
+            注册节点
+          </Button>
+        </div>
+      ) : (
+        <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
+      )}
       {open ? (
         <div style={{ marginTop: 16 }}>
           <Typography.Title level={5}>注册节点</Typography.Title>
@@ -82,21 +97,25 @@ export function MecNodesPage() {
               }
             }}
           >
-            <Form.Item name="nodeName" label="节点名" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="n6LocalEndpoint" label="N6 本地端点" rules={[{ required: true }]}>
-              <Input placeholder="10.10.0.3:2152" />
-            </Form.Item>
-            <Form.Item name="dnnIds" label="DNN 列表（逗号分隔）">
-              <Input placeholder="dnn-a.private,dnn-b.private" />
-            </Form.Item>
-            <Form.Item name="capabilityTags" label="能力标签（逗号分隔）">
-              <Input placeholder="N6_BREAKOUT,LCL" />
-            </Form.Item>
-            <Form.Item name="healthProbe" label="健康探测 URL">
-              <Input />
-            </Form.Item>
+            <Card className="form-section-card" size="small" title="节点信息">
+              <Form.Item name="nodeName" label="节点名" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+              <Form.Item name="n6LocalEndpoint" label="N6 本地端点" rules={[{ required: true }]}>
+                <Input placeholder="10.10.0.3:2152" />
+              </Form.Item>
+            </Card>
+            <Card className="form-section-card" size="small" title="路由与探测">
+              <Form.Item name="dnnIds" label="DNN 列表（逗号分隔）">
+                <Input placeholder="dnn-a.private,dnn-b.private" />
+              </Form.Item>
+              <Form.Item name="capabilityTags" label="能力标签（逗号分隔）">
+                <Input placeholder="N6_BREAKOUT,LCL" />
+              </Form.Item>
+              <Form.Item name="healthProbe" label="健康探测 URL">
+                <Input />
+              </Form.Item>
+            </Card>
             <Space>
               <Button type="primary" htmlType="submit">
                 保存

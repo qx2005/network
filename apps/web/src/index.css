@@ -24,6 +24,41 @@
     'Segoe UI', system-ui, sans-serif;
   --app-font-mono:
     'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+
+  /* ---- Transition tokens ---- */
+  --app-transition-fast: 0.15s ease;
+  --app-transition-normal: 0.22s ease;
+  --app-transition-slow: 0.35s ease;
+
+  /* ---- Accent variants ---- */
+  --app-accent-soft: rgba(13, 148, 136, 0.08);
+  --app-accent-bg: rgba(45, 212, 191, 0.06);
+
+  /* ---- Skeleton tokens ---- */
+  --app-skeleton-base: #e8edf2;
+  --app-skeleton-shine: #f4f7fa;
+
+  /* ---- Shadow tiers ---- */
+  --app-shadow-card-hover: 0 4px 20px rgba(15, 23, 42, 0.1);
+  --app-shadow-modal: 0 20px 60px rgba(15, 23, 42, 0.15);
+
+  /* ---- Status colors ---- */
+  --app-status-green: #059669;
+  --app-status-amber: #d97706;
+  --app-status-red: #dc2626;
+  --app-status-blue: #0e7490;
+  --app-status-slate: #64748b;
+}
+
+/* Page transition — cross-fade on SPA navigation */
+@view-transition {
+  navigation: auto;
+}
+::view-transition-old(root) {
+  animation: 0.18s ease both fade-out;
+}
+::view-transition-new(root) {
+  animation: 0.25s ease 0.05s both fade-in;
 }
 
 html,
@@ -60,6 +95,8 @@ body {
   min-height: calc(100vh - 56px - 48px);
   padding: 26px 32px 40px;
   position: relative;
+  width: 100%;
+  max-width: 1400px;
 }
 
 .app-content-paper::before {
@@ -68,12 +105,7 @@ body {
   inset: 0 0 auto 0;
   height: 3px;
   border-radius: 14px 14px 0 0;
-  background: linear-gradient(
-    90deg,
-    var(--app-accent-deep),
-    var(--app-sider-accent),
-    rgba(45, 212, 191, 0.35)
-  );
+  background: var(--app-accent-deep);
   opacity: 0.85;
   pointer-events: none;
 }
@@ -93,10 +125,22 @@ body {
   background: rgba(255, 255, 255, 0.88) !important;
   border-bottom: 1px solid var(--app-line-subtle) !important;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .app-shell-header .app-header-title {
   letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Hide status badge on very narrow screens */
+@media (max-width: 640px) {
+  .app-shell-header .app-status-dot {
+    display: none;
+  }
 }
 
 .app-shell-header .app-role-shell {
@@ -135,6 +179,7 @@ body {
 
 /* Stat / KPI cards */
 .kpi-card.ant-card {
+  height: 100%;
   border: 1px solid var(--app-line-subtle);
   border-radius: 14px;
   background: linear-gradient(
@@ -211,4 +256,180 @@ body {
 .config-receipt-modal .ant-modal-title {
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+/* ===== Keyframes ===== */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes skeleton-pulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* ===== Skeleton ===== */
+.app-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--app-skeleton-base) 25%,
+    var(--app-skeleton-shine) 50%,
+    var(--app-skeleton-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* ===== Empty state ===== */
+.app-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: #94a3b8;
+  text-align: center;
+  min-height: 200px;
+}
+
+/* ===== Form section card ===== */
+.form-section-card.ant-card {
+  margin-bottom: 20px;
+  border: 1px solid var(--app-line-subtle);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fafbfc 0%, var(--app-surface) 100%);
+}
+.form-section-card.ant-card .ant-card-head {
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  border-bottom-color: var(--app-line-subtle);
+  min-height: 44px;
+}
+.form-section-card.ant-card .ant-card-body {
+  padding: 16px 20px 4px;
+}
+
+/* ===== Dashboard chart ===== */
+.app-chart-container {
+  margin: 8px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--app-line-subtle);
+}
+
+/* ===== Trend indicator ===== */
+.app-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.app-trend-up   { color: var(--app-status-green); }
+.app-trend-down { color: var(--app-status-red); }
+.app-trend-flat { color: var(--app-status-slate); }
+
+/* ===== Status distribution bar ===== */
+.app-status-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  gap: 2px;
+  margin-top: 6px;
+}
+.app-status-bar-segment {
+  height: 100%;
+  border-radius: 4px;
+  min-width: 3px;
+  transition: flex 0.4s ease;
+}
+
+/* ===== Status bar legend ===== */
+.app-status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+.app-status-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.app-status-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ===== Breadcrumb ===== */
+.app-breadcrumb.ant-breadcrumb {
+  margin-bottom: 4px;
+}
+.app-breadcrumb.ant-breadcrumb a {
+  color: #64748b;
+}
+.app-breadcrumb.ant-breadcrumb a:hover {
+  color: var(--app-accent-deep);
+}
+
+/* ===== Mobile sidebar ===== */
+@media (max-width: 992px) {
+  .app-sider-overlay {
+    position: fixed !important;
+    z-index: 100;
+    height: 100vh;
+    left: 0;
+    top: 0;
+  }
+  .app-sider-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 99;
+    animation: fade-in 0.18s ease;
+  }
+}
+.app-mobile-menu-btn { display: none; }
+@media (max-width: 992px) {
+  .app-mobile-menu-btn { display: inline-flex !important; }
+}
+
+/* ===== Button press ===== */
+.ant-btn {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.ant-btn:active {
+  transform: scale(0.97);
+}
+
+/* ===== Table row hover ===== */
+.ant-table-tbody > tr {
+  transition: background-color 0.15s ease;
+}
+
+/* ===== KPI card entrance ===== */
+.kpi-card {
+  animation: slide-up 0.35s ease both;
 }
