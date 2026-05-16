@@ -38,6 +38,13 @@ export class MecController {
     );
   }
 
+  @Delete('nodes/:id')
+  @Roles('operator', 'admin')
+  deleteNode(@Param('id') id: string, @Headers('x-user-id') userId?: string) {
+    this.mec.removeNode(id, userId ?? 'system');
+    return { ok: true };
+  }
+
   @Get('rules')
   @Roles('viewer')
   rules() {

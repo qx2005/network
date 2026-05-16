@@ -28,6 +28,12 @@ export class SystemController {
           admin: ['read', 'apply_power_profile', 'force_detach'],
         },
         {
+          resource: 'MecNode',
+          viewer: ['read'],
+          operator: ['read', 'create', 'delete'],
+          admin: ['read', 'create', 'delete'],
+        },
+        {
           resource: 'MecOffloadRule',
           viewer: ['read'],
           operator: ['read', 'create', 'update'],

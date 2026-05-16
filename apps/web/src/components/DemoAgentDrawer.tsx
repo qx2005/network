@@ -1,4 +1,4 @@
-import { App, Button, Collapse, Drawer, Input, Steps, Typography } from 'antd'
+import { App, Button, Collapse, Drawer, Select, Steps, Typography } from 'antd'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { sleep } from '../api/client'
 import type { PlaybookFieldRow } from '../demo/demoPlaybook'
@@ -7,11 +7,22 @@ import type { PlaybookFieldRow } from '../demo/demoPlaybook'
 /** 步骤条阶段之间的节奏停顿，用于编排步骤的可读展示。 */
 const STEP_THINK_MS = 2000
 
+export type DeviceNameSelectOption = { label: string; value: string }
+
+/** Default device preset when parent does not pass `deviceSelectOptions`. */
+/** 父组件未传入 `deviceSelectOptions` 时的默认设备预设。 */
+const DEFAULT_DEVICE_SELECT_OPTIONS: DeviceNameSelectOption[] = [
+  { label: '机械臂', value: '机械臂' },
+]
+
 /** Optional first step: simulate Agent deriving playbook fields from a device name. */
 /** 可选的第一步：模拟 Agent 由设备名推导配置字段。 */
 export type DeviceNameAgentStepConfig = {
   buildGenerateScript: (deviceName: string) => string[]
   buildFieldRows: (deviceName: string) => PlaybookFieldRow[]
+  /** Device name dropdown; omit to use the default single option「机械臂」. */
+  /** 设备名称下拉项；省略时仅「机械臂」一项。 */
+  deviceSelectOptions?: DeviceNameSelectOption[]
 }
 
 export type AgentExecuteContext = {
@@ -60,16 +71,24 @@ export function DemoAgentDrawer({
 
   const hasDeviceStep = Boolean(deviceNameStep)
 
+  const deviceSelectOptions = useMemo(() => {
+    if (!deviceNameStep) return DEFAULT_DEVICE_SELECT_OPTIONS
+    return deviceNameStep.deviceSelectOptions?.length
+      ? deviceNameStep.deviceSelectOptions
+      : DEFAULT_DEVICE_SELECT_OPTIONS
+  }, [deviceNameStep])
+
   useEffect(() => {
     if (open) {
-      setDeviceName('')
+      const firstVal = hasDeviceStep ? (deviceSelectOptions[0]?.value ?? '') : ''
+      setDeviceName(firstVal)
       setGeneratedRows(null)
       setStep(0)
       setLogText('')
     } else {
       setRunning(false)
     }
-  }, [open])
+  }, [open, hasDeviceStep, deviceSelectOptions])
 
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: 'smooth' })
@@ -117,7 +136,7 @@ export function DemoAgentDrawer({
       if (hasDeviceStep && deviceNameStep) {
         const name = deviceName.trim()
         if (!name) {
-          message.warning('请输入设备名称')
+          message.warning('请选择设备名称')
           setRunning(false)
           return
         }
@@ -203,12 +222,13 @@ export function DemoAgentDrawer({
               <Typography.Paragraph type="secondary" style={{ marginBottom: 8, marginTop: 4, fontSize: 12 }}>
                 Agent 将据此生成切片展示名、描述与成员分组等草案
               </Typography.Paragraph>
-              <Input
-                placeholder="例如：3号线-装箱机械臂主站"
-                value={deviceName}
-                onChange={(e) => setDeviceName(e.target.value)}
+              <Select
+                placeholder="请选择设备名称"
+                value={deviceName || undefined}
+                onChange={setDeviceName}
                 disabled={running}
-                allowClear
+                options={deviceSelectOptions}
+                style={{ width: '100%' }}
               />
               <Typography.Text strong style={{ display: 'block', marginTop: 16 }}>
                 将写入字段（只读）

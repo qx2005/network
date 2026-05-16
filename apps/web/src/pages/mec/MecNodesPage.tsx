@@ -1,4 +1,4 @@
-import { App, Button, Card, Empty, Form, Input, Skeleton, Space, Table } from 'antd'
+import { App, Button, Card, Empty, Form, Input, Popconfirm, Skeleton, Space, Table, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
 import { apiGet, apiSend, getRole } from '../../api/client'
@@ -68,6 +68,39 @@ export function MecNodesPage() {
       render: (v: string[]) => joinList(v),
     },
     { title: '健康探测', dataIndex: 'healthProbe', ellipsis: true },
+    {
+      title: '操作',
+      key: 'actions',
+      width: 88,
+      fixed: 'right',
+      render: (_, r) =>
+        viewerOnly ? (
+          <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+            —
+          </Typography.Text>
+        ) : (
+          <Popconfirm
+            title="确认删除该节点？"
+            description="删除后不可恢复，相关审计仍会保留。"
+            okText="删除"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+            onConfirm={async () => {
+              try {
+                await apiSend(`/api/mec/nodes/${r.id}`, { method: 'DELETE' })
+                message.success('已删除节点')
+                await load()
+              } catch (e) {
+                message.error(e instanceof Error ? e.message : '删除失败')
+              }
+            }}
+          >
+            <Button type="link" danger size="small" style={{ padding: 0 }}>
+              删除
+            </Button>
+          </Popconfirm>
+        ),
+    },
   ]
 
   return (

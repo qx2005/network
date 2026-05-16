@@ -114,6 +114,20 @@ export class MecService {
     return row;
   }
 
+  removeNode(id: string, actor: string): void {
+    const idx = this.nodes.findIndex((n) => n.id === id);
+    if (idx < 0) throw new NotFoundException(`未找到 MEC 节点：${id}`);
+    this.nodes.splice(idx, 1);
+    this.audit.append({
+      actor,
+      action: 'mec.node.delete',
+      resourceType: 'MecNode',
+      resourceId: id,
+      result: 'success',
+      traceId: uuidv4(),
+    });
+  }
+
   listRules(): MecOffloadRule[] {
     return [...this.rules].sort((a, b) => a.priority - b.priority);
   }
