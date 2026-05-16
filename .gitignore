@@ -5,6 +5,10 @@ dist/
 apps/api/dist/
 apps/web/dist/
 
+# Local IDE / MCP artifacts
+.playwright-mcp/
+.claude/
+
 # Local secrets / env (never commit)
 .env
 .env.*

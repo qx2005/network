@@ -1,0 +1,15 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.gitignore
+*.md
+.env
+.env.*
+!.env.example
+.cursor
+.playwright-mcp
+*.png
+coverage
+.turbo
+**/.tmp

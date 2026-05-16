@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -46,5 +47,12 @@ export class FiveGlanController {
     @Headers('x-user-id') userId?: string,
   ) {
     return this.vn.update(id, body as never, userId ?? 'system');
+  }
+
+  @Delete('vn/:id')
+  @Roles('admin')
+  deleteVn(@Param('id') id: string, @Headers('x-user-id') userId?: string) {
+    this.vn.removeVn(id, userId ?? 'system');
+    return { ok: true };
   }
 }

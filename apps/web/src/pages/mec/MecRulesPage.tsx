@@ -1,10 +1,17 @@
-import { App, Button, Card, Empty, Form, Input, InputNumber, Select, Skeleton, Space, Switch, Table, Typography } from 'antd'
+import { App, Button, Card, Empty, Form, Input, InputNumber, Modal, Popconfirm, Select, Skeleton, Space, Switch, Table } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
 import { apiGet, apiSend } from '../../api/client'
 import { TruthFeedbackModal } from '../../components/TruthFeedbackModal'
 import type { CommitResult, MecOffloadRule, ProvisionReport } from '../../domain/types'
 import { mecActionTypeZh, protocolLabelZh } from '../../lib/displayZh'
+
+const newRuleFormDefaults = {
+  priority: 100,
+  protocol: 'ANY',
+  bypassPublicNetwork: true,
+  actionType: 'LOCAL_BREAKOUT',
+} as const
 
 export function MecRulesPage() {
   const { message } = App.useApp()
@@ -14,6 +21,11 @@ export function MecRulesPage() {
   const [form] = Form.useForm()
   const [fbOpen, setFbOpen] = useState(false)
   const [fbReport, setFbReport] = useState<ProvisionReport | null>(null)
+
+  const closeModal = () => {
+    setOpen(false)
+    form.resetFields()
+  }
 
   const load = async () => {
     setLoading(true)
@@ -53,6 +65,29 @@ export function MecRulesPage() {
       ),
     },
     { title: '命中', dataIndex: 'hitCount', width: 100 },
+    {
+      title: '操作',
+      key: 'actions',
+      width: 80,
+      render: (_, r) => (
+        <Popconfirm
+          title="确认删除该规则？"
+          onConfirm={async () => {
+            try {
+              await apiSend(`/api/mec/rules/${r.id}`, { method: 'DELETE' })
+              message.success('已删除')
+              await load()
+            } catch (e) {
+              message.error(e instanceof Error ? e.message : '删除失败')
+            }
+          }}
+        >
+          <Button type="link" danger size="small">
+            删除
+          </Button>
+        </Popconfirm>
+      ),
+    },
     {
       title: '启用',
       dataIndex: 'enabled',
@@ -108,131 +143,129 @@ export function MecRulesPage() {
       ) : (
         <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
       )}
-      {open ? (
-        <div style={{ marginTop: 16 }}>
-          <Typography.Title level={5}>新建规则</Typography.Title>
-          <Form
-            form={form}
-            layout="vertical"
-            initialValues={{
-              priority: 100,
-              protocol: 'ANY',
-              bypassPublicNetwork: true,
-              actionType: 'LOCAL_BREAKOUT',
-            }}
-            onFinish={async (v) => {
-              const destIpCidrs = String(v.destIpCidrs || '')
-                .split(',')
-                .map((s: string) => s.trim())
-                .filter(Boolean)
-              const srcIpCidrs = String(v.srcIpCidrs || '')
-                .split(',')
-                .map((s: string) => s.trim())
-                .filter(Boolean)
-              const portRanges = String(v.portRanges || '')
-                .split(',')
-                .map((s: string) => s.trim())
-                .filter(Boolean)
-              const body = {
-                priority: v.priority,
-                name: v.name,
-                enabled: true,
-                match: {
-                  destIpCidrs,
-                  srcIpCidrs,
-                  protocol: v.protocol,
-                  portRanges,
-                  vnId: v.vnId || undefined,
+      <Modal
+        title="新建规则"
+        open={open}
+        onCancel={closeModal}
+        footer={null}
+        width={800}
+        destroyOnHidden
+        afterOpenChange={(visible) => {
+          if (visible) {
+            form.resetFields()
+            form.setFieldsValue({ ...newRuleFormDefaults })
+          }
+        }}
+        styles={{ body: { maxHeight: 'calc(100vh - 220px)', overflowY: 'auto', paddingTop: 8 } }}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          initialValues={newRuleFormDefaults}
+          onFinish={async (v) => {
+            const destIpCidrs = String(v.destIpCidrs || '')
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+            const srcIpCidrs = String(v.srcIpCidrs || '')
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+            const portRanges = String(v.portRanges || '')
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+            const body = {
+              priority: v.priority,
+              name: v.name,
+              enabled: true,
+              match: {
+                destIpCidrs,
+                srcIpCidrs,
+                protocol: v.protocol,
+                portRanges,
+                vnId: v.vnId || undefined,
+              },
+              action: {
+                actionType: v.actionType,
+                nextHop: v.nextHop || undefined,
+                bypassPublicNetwork: !!v.bypassPublicNetwork,
+              },
+            }
+            try {
+              const res = await apiSend<CommitResult<MecOffloadRule>>(
+                '/api/mec/rules',
+                {
+                  method: 'POST',
+                  body: JSON.stringify(body),
                 },
-                action: {
-                  actionType: v.actionType,
-                  nextHop: v.nextHop || undefined,
-                  bypassPublicNetwork: !!v.bypassPublicNetwork,
-                },
-              }
-              try {
-                const res = await apiSend<CommitResult<MecOffloadRule>>(
-                  '/api/mec/rules',
-                  {
-                    method: 'POST',
-                    body: JSON.stringify(body),
-                  },
-                )
-                setFbReport(res.report)
-                setFbOpen(true)
-                message.success('已创建规则')
-                form.resetFields()
-                setOpen(false)
-                await load()
-              } catch (e) {
-                message.error(e instanceof Error ? e.message : '创建失败')
-              }
-            }}
-          >
-            <Card className="form-section-card" size="small" title="基本信息">
-              <Form.Item name="name" label="规则名" rules={[{ required: true }]}>
-                <Input />
-              </Form.Item>
-              <Form.Item name="priority" label="优先级（数值越小越优先，按实现约定）">
-                <InputNumber style={{ width: '100%' }} />
-              </Form.Item>
-            </Card>
-            <Card className="form-section-card" size="small" title="匹配条件">
-              <Form.Item name="destIpCidrs" label="目的网段 CIDR（逗号分隔）">
-                <Input placeholder="10.45.0.0/16" />
-              </Form.Item>
-              <Form.Item name="srcIpCidrs" label="源网段 CIDR（可选，逗号分隔）">
-                <Input />
-              </Form.Item>
-              <Form.Item name="protocol" label="协议">
-                <Select
-                  options={[
-                    { value: 'ANY', label: '任意' },
-                    { value: 'TCP', label: 'TCP' },
-                    { value: 'UDP', label: 'UDP' },
-                  ]}
-                />
-              </Form.Item>
-              <Form.Item name="portRanges" label="端口范围（逗号分隔，如 4840 或 8000-8010）">
-                <Input />
-              </Form.Item>
-              <Form.Item name="vnId" label="VN ID（可选）">
-                <Input placeholder="vn-line1" />
-              </Form.Item>
-            </Card>
-            <Card className="form-section-card" size="small" title="动作">
-              <Form.Item name="actionType" label="动作类型">
-                <Select
-                  options={[
-                    { value: 'LOCAL_BREAKOUT', label: '本地分流' },
-                    { value: 'NEXT_HOP', label: '下一跳' },
-                    { value: 'MIRROR', label: '镜像' },
-                  ]}
-                />
-              </Form.Item>
-              <Form.Item name="nextHop" label="下一跳（可选）">
-                <Input />
-              </Form.Item>
-              <Form.Item name="bypassPublicNetwork" label="绕过公网" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-            </Card>
-            <Space>
-              <Button type="primary" htmlType="submit">
-                保存
-              </Button>
-              <Button
-                onClick={() => {
-                  setOpen(false)
-                  form.resetFields()
-                }}
-              >
-                取消
-              </Button>
-            </Space>
-          </Form>
-        </div>
-      ) : null}
+              )
+              setFbReport(res.report)
+              setFbOpen(true)
+              message.success('已创建规则')
+              closeModal()
+              await load()
+            } catch (e) {
+              message.error(e instanceof Error ? e.message : '创建失败')
+            }
+          }}
+        >
+          <Card className="form-section-card" size="small" title="基本信息">
+            <Form.Item name="name" label="规则名" rules={[{ required: true }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item name="priority" label="优先级（数值越小越优先，按实现约定）">
+              <InputNumber style={{ width: '100%' }} />
+            </Form.Item>
+          </Card>
+          <Card className="form-section-card" size="small" title="匹配条件">
+            <Form.Item name="destIpCidrs" label="目的网段 CIDR（逗号分隔）">
+              <Input placeholder="10.45.0.0/16" />
+            </Form.Item>
+            <Form.Item name="srcIpCidrs" label="源网段 CIDR（可选，逗号分隔）">
+              <Input />
+            </Form.Item>
+            <Form.Item name="protocol" label="协议">
+              <Select
+                options={[
+                  { value: 'ANY', label: '任意' },
+                  { value: 'TCP', label: 'TCP' },
+                  { value: 'UDP', label: 'UDP' },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item name="portRanges" label="端口范围（逗号分隔，如 4840 或 8000-8010）">
+              <Input />
+            </Form.Item>
+            <Form.Item name="vnId" label="VN ID（可选）">
+              <Input placeholder="vn-line1" />
+            </Form.Item>
+          </Card>
+          <Card className="form-section-card" size="small" title="动作">
+            <Form.Item name="actionType" label="动作类型">
+              <Select
+                options={[
+                  { value: 'LOCAL_BREAKOUT', label: '本地分流' },
+                  { value: 'NEXT_HOP', label: '下一跳' },
+                  { value: 'MIRROR', label: '镜像' },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item name="nextHop" label="下一跳（可选）">
+              <Input />
+            </Form.Item>
+            <Form.Item name="bypassPublicNetwork" label="绕过公网" valuePropName="checked">
+              <Switch />
+            </Form.Item>
+          </Card>
+          <Space>
+            <Button type="primary" htmlType="submit">
+              保存
+            </Button>
+            <Button onClick={closeModal}>取消</Button>
+          </Space>
+        </Form>
+      </Modal>
       <TruthFeedbackModal
         open={fbOpen}
         title="MEC 分流规则 — 配置回执"

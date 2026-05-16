@@ -50,16 +50,8 @@
   --app-status-slate: #64748b;
 }
 
-/* Page transition — cross-fade on SPA navigation */
-@view-transition {
-  navigation: auto;
-}
-::view-transition-old(root) {
-  animation: 0.18s ease both fade-out;
-}
-::view-transition-new(root) {
-  animation: 0.25s ease 0.05s both fade-in;
-}
+/* View transitions disabled — `both` fill-mode left content at opacity:0 (white screen) in some browsers. */
+/* 已关闭视图过渡：部分浏览器下动画结束态仍为透明，导致整页发白。 */
 
 html,
 body,

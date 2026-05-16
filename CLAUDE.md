@@ -15,11 +15,11 @@ Full product spec: [docs/product-spec.md](docs/product-spec.md)
 npm run dev
 
 # Individual dev servers
-npm run dev:web          # Vite dev server on :5173
+npm run dev:web          # Vite dev server on :7777
 npm run dev:api          # NestJS on :3000, watches and rebuilds
 
 # Web build & lint
-npm run dev -w web -- lint
+npm run lint             # ESLint for web (from repo root)
 npm run build            # builds both API and web
 
 # API only
@@ -27,7 +27,7 @@ npm run start:dev -w api
 npm run build -w api
 ```
 
-The API runs on `http://localhost:3000` with global prefix `/api`. The Vite dev server proxies `/api` to the backend.
+The API runs on `http://localhost:3000` with global prefix `/api`. The Vite dev server runs on `http://localhost:7777` and proxies `/api` to the backend. Docker stack: `npm run docker:up` → open `http://localhost:7777`.
 
 ## Architecture
 

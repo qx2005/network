@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -29,6 +30,15 @@ export class RedcapController {
     return this.redcap.getDevice(id);
   }
 
+  @Post('devices')
+  @Roles('operator', 'admin')
+  createDevice(
+    @Body() body: Record<string, unknown>,
+    @Headers('x-user-id') userId?: string,
+  ) {
+    return this.redcap.createDevice(body as never, userId ?? 'system');
+  }
+
   @Patch('devices/:id/profile')
   @Roles('operator', 'admin')
   applyProfile(
@@ -37,6 +47,16 @@ export class RedcapController {
     @Headers('x-user-id') userId?: string,
   ) {
     return this.redcap.applyProfile(id, body.profileId, userId ?? 'system');
+  }
+
+  @Delete('devices/:id')
+  @Roles('operator', 'admin')
+  removeDevice(
+    @Param('id') id: string,
+    @Headers('x-user-id') userId?: string,
+  ) {
+    this.redcap.removeDevice(id, userId ?? 'system');
+    return { ok: true };
   }
 
   @Get('power-profiles')

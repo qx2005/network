@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -55,5 +56,12 @@ export class MecController {
     @Headers('x-user-id') userId?: string,
   ) {
     return this.mec.updateRule(id, body as never, userId ?? 'system');
+  }
+
+  @Delete('rules/:id')
+  @Roles('admin')
+  deleteRule(@Param('id') id: string, @Headers('x-user-id') userId?: string) {
+    this.mec.removeRule(id, userId ?? 'system');
+    return { ok: true };
   }
 }

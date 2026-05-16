@@ -208,6 +208,37 @@ export function buildRedcapPowerApplyReport(
   };
 }
 
+export function buildRedcapPowerDisableReport(
+  deviceId: string,
+  supi: string,
+): ProvisionReport {
+  const correlationId = uuidv4();
+  const completedAt = new Date().toISOString();
+  const steps: SimulatedNeStep[] = [
+    {
+      ne: 'AMF',
+      operation: 'RRC 配置',
+      status: 'APPLIED',
+      detail: `已取消签约用户 ${supi} 的省电模板与 eDRX 周期配置。`,
+    },
+    {
+      ne: 'RAN',
+      operation: '无线资源管理',
+      status: 'APPLIED',
+      detail:
+        '无线侧已关闭扩展 DRX，终端维持常规寻呼与连续接收策略（演示回执）。',
+    },
+  ];
+  return {
+    correlationId,
+    completedAt,
+    overallStatus: 'SUCCESS',
+    summary: `RedCap eDRX 已对终端 ${deviceId} 设置为禁用（已解绑省电模板）。`,
+    configEcho: { deviceId, supi, profile: null, edrx: 'disabled' },
+    steps,
+  };
+}
+
 export function buildRollbackReport(sliceId: string): ProvisionReport {
   const correlationId = uuidv4();
   const completedAt = new Date().toISOString();

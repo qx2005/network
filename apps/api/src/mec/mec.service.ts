@@ -15,27 +15,69 @@ export class MecService {
       capabilityTags: ['N6_BREAKOUT', 'LCL'],
       healthProbe: 'http://10.10.0.3:8080/health',
     },
+    {
+      id: 'mec-packaging-ai',
+      nodeName: '包装车间-AI质检边缘节点',
+      n6LocalEndpoint: '10.10.1.50:2152',
+      dnnIds: ['dnn-vision.private'],
+      capabilityTags: ['N6_BREAKOUT', 'GPU_ACCEL'],
+      healthProbe: 'http://10.10.1.50:9090/health',
+    },
   ];
 
   private rules: MecOffloadRule[] = [
     {
-      id: 'rule-1',
+      id: 'rule-glass-local',
       priority: 10,
-      name: '产线 PLC 至本地控制器',
+      name: '玻瓶/酒液杂质图像本地卸载',
       enabled: true,
       match: {
-        destIpCidrs: ['10.45.0.0/16'],
+        destIpCidrs: ['10.45.1.0/24'],
         srcIpCidrs: [],
         protocol: 'TCP',
-        portRanges: ['4840'],
-        vnId: 'vn-line1',
+        portRanges: ['8080-8090'],
+      },
+      action: {
+        actionType: 'LOCAL_BREAKOUT',
+        nextHop: '10.10.1.50',
+        bypassPublicNetwork: true,
+      },
+      hitCount: 2845102,
+    },
+    {
+      id: 'rule-spindle-s7',
+      priority: 20,
+      name: '灌装主轴与送瓶机协同信令',
+      enabled: true,
+      match: {
+        destIpCidrs: ['0.0.0.0/0'],
+        srcIpCidrs: [],
+        protocol: 'TCP',
+        portRanges: ['102'],
       },
       action: {
         actionType: 'LOCAL_BREAKOUT',
         nextHop: '10.10.0.10',
         bypassPublicNetwork: true,
       },
-      hitCount: 18432,
+      hitCount: 9144320,
+    },
+    {
+      id: 'rule-cellar-transit',
+      priority: 100,
+      name: '基酒库可燃气体上报透传',
+      enabled: true,
+      match: {
+        destIpCidrs: ['0.0.0.0/0'],
+        srcIpCidrs: ['10.45.3.0/24'],
+        protocol: 'ANY',
+        portRanges: [],
+      },
+      action: {
+        actionType: 'LOCAL_BREAKOUT',
+        bypassPublicNetwork: false,
+      },
+      hitCount: 54201,
     },
   ];
 
@@ -128,5 +170,19 @@ export class MecService {
       traceId: uuidv4(),
     });
     return { data: next, report };
+  }
+
+  removeRule(id: string, actor: string): void {
+    const idx = this.rules.findIndex((r) => r.id === id);
+    if (idx < 0) throw new NotFoundException(`未找到分流规则：${id}`);
+    this.rules.splice(idx, 1);
+    this.audit.append({
+      actor,
+      action: 'mec.rule.delete',
+      resourceType: 'MecOffloadRule',
+      resourceId: id,
+      result: 'success',
+      traceId: uuidv4(),
+    });
   }
 }
