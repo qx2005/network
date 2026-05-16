@@ -2,8 +2,10 @@ import { Card, Col, Row, Skeleton, Space, Statistic, Typography } from 'antd'
 import { useEffect, useState } from 'react'
 import { apiGet } from '../api/client'
 import { StatusDistributionBar } from '../components/DashboardChart'
+import { DeviceTopologyPanel } from '../components/DeviceTopologyPanel'
 import type {
   FiveGLanVn,
+  MecNode,
   MecOffloadRule,
   NetworkSlice,
   RedCapDevice,
@@ -12,6 +14,7 @@ import type {
 export function DashboardPage() {
   const [slices, setSlices] = useState<NetworkSlice[]>([])
   const [devices, setDevices] = useState<RedCapDevice[]>([])
+  const [mecNodes, setMecNodes] = useState<MecNode[]>([])
   const [rules, setRules] = useState<MecOffloadRule[]>([])
   const [vns, setVns] = useState<FiveGLanVn[]>([])
   const [err, setErr] = useState<string | null>(null)
@@ -21,15 +24,17 @@ export function DashboardPage() {
     let cancelled = false
     void (async () => {
       try {
-        const [s, d, r, v] = await Promise.all([
+        const [s, d, mn, r, v] = await Promise.all([
           apiGet<NetworkSlice[]>('/api/slices'),
           apiGet<RedCapDevice[]>('/api/redcap/devices'),
+          apiGet<MecNode[]>('/api/mec/nodes'),
           apiGet<MecOffloadRule[]>('/api/mec/rules'),
           apiGet<FiveGLanVn[]>('/api/five-glan/vn'),
         ])
         if (!cancelled) {
           setSlices(s)
           setDevices(d)
+          setMecNodes(mn)
           setRules(r)
           setVns(v)
           setLoaded(true)
@@ -167,6 +172,13 @@ export function DashboardPage() {
                 </Card>
               </Col>
             </Row>
+            <DeviceTopologyPanel
+              slices={slices}
+              devices={devices}
+              mecNodes={mecNodes}
+              rules={rules}
+              vns={vns}
+            />
           </>
         )}
       </Space>

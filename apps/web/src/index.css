@@ -425,3 +425,218 @@ body {
 .kpi-card {
   animation: slide-up 0.35s ease both;
 }
+
+/* ===== Device topology (dashboard) 设备拓扑画布 */
+.device-topology-card.ant-card {
+  margin-top: 8px;
+  border: 1px solid var(--app-line-subtle);
+  border-radius: 14px;
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.99) 0%,
+    rgba(248, 250, 252, 0.96) 100%
+  );
+}
+
+.device-topology-body {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  min-height: 420px;
+}
+
+.device-topology-palette {
+  flex: 0 0 220px;
+  max-width: 240px;
+}
+
+.device-topology-palette .ant-collapse > .ant-collapse-item > .ant-collapse-header {
+  font-weight: 600;
+}
+
+.device-topology-palette-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--app-line-subtle);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.75);
+  cursor: grab;
+  text-align: left;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.device-topology-palette-item:hover:not(:disabled) {
+  border-color: rgba(45, 212, 191, 0.45);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+}
+
+.device-topology-palette-item:active:not(:disabled) {
+  cursor: grabbing;
+}
+
+.device-topology-palette-item:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.device-topology-palette-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.device-topology-canvas-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 420px;
+  border: 1px solid var(--app-line-subtle);
+  border-radius: 12px;
+  background-color: #f8fafc;
+  background-image: radial-gradient(
+    rgba(148, 163, 184, 0.22) 1px,
+    transparent 1px
+  );
+  background-size: 14px 14px;
+  overflow: auto;
+}
+
+.device-topology-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.device-topology-empty .ant-empty-description {
+  max-width: 360px;
+  text-align: center;
+}
+
+.device-topology-edges {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.device-topology-canvas {
+  position: relative;
+  z-index: 2;
+  transition: min-height 0.2s ease;
+}
+
+.device-topology-node {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 2px solid #cbd5e1;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  transition:
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    background 0.22s ease;
+  touch-action: none;
+}
+
+.device-topology-node.is-inactive {
+  opacity: 0.72;
+  border-color: #94a3b8;
+}
+
+.device-topology-node.is-placed {
+  border-color: #94a3b8;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.device-topology-node.is-active {
+  border-color: var(--app-status-green, #16a34a);
+  box-shadow:
+    0 0 0 1px rgba(22, 163, 74, 0.12),
+    0 4px 14px rgba(22, 163, 74, 0.12);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.device-topology-node.is-error {
+  border-color: var(--app-status-red, #dc2626);
+  box-shadow: 0 2px 10px rgba(220, 38, 38, 0.12);
+}
+
+.device-topology-node-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-topology-node-meta {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.device-topology-node-state {
+  font-variant-numeric: tabular-nums;
+}
+
+.device-topology-legend {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  z-index: 3;
+  font-size: 12px;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--app-line-subtle);
+  pointer-events: none;
+}
+
+.device-topology-legend-line {
+  display: inline-block;
+  width: 22px;
+  height: 0;
+  border-top: 2px solid #64748b;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.device-topology-legend-line.is-ok {
+  border-top-color: var(--app-status-green, #16a34a);
+}
+
+.device-topology-legend-line.is-pending {
+  border-top-style: dashed;
+  opacity: 0.75;
+}
+
+@media (max-width: 992px) {
+  .device-topology-body {
+    flex-direction: column;
+  }
+  .device-topology-palette {
+    flex: none;
+    max-width: none;
+  }
+}
