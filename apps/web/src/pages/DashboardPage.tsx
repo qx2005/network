@@ -6,7 +6,6 @@ import type {
   FiveGLanVn,
   MecOffloadRule,
   NetworkSlice,
-  ProvisioningJob,
   RedCapDevice,
 } from '../domain/types'
 
@@ -15,7 +14,6 @@ export function DashboardPage() {
   const [devices, setDevices] = useState<RedCapDevice[]>([])
   const [rules, setRules] = useState<MecOffloadRule[]>([])
   const [vns, setVns] = useState<FiveGLanVn[]>([])
-  const [jobs, setJobs] = useState<ProvisioningJob[]>([])
   const [err, setErr] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
 
@@ -23,19 +21,17 @@ export function DashboardPage() {
     let cancelled = false
     void (async () => {
       try {
-        const [s, d, r, v, j] = await Promise.all([
+        const [s, d, r, v] = await Promise.all([
           apiGet<NetworkSlice[]>('/api/slices'),
           apiGet<RedCapDevice[]>('/api/redcap/devices'),
           apiGet<MecOffloadRule[]>('/api/mec/rules'),
           apiGet<FiveGLanVn[]>('/api/five-glan/vn'),
-          apiGet<ProvisioningJob[]>('/api/provisioning/jobs'),
         ])
         if (!cancelled) {
           setSlices(s)
           setDevices(d)
           setRules(r)
           setVns(v)
-          setJobs(j)
           setLoaded(true)
         }
       } catch (e) {
@@ -52,11 +48,6 @@ export function DashboardPage() {
   const draftCount = slices.filter((x) => x.status === 'draft').length
   const errorCount = slices.filter((x) => x.status === 'error').length
   const hitTotal = rules.reduce((a, b) => a + (b.hitCount ?? 0), 0)
-  const pendingCount = jobs.filter((j) => j.status === 'pending').length
-  const processingCount = jobs.filter((j) => j.status === 'processing').length
-  const finishedCount = jobs.filter(
-    (j) => j.status === 'success' || j.status === 'failed',
-  ).length
   const activeDevices = devices.filter(
     (d) => d.rrcState === 'RRC_CONNECTED',
   ).length
@@ -65,12 +56,6 @@ export function DashboardPage() {
     { label: '已下发', value: provisioned, color: 'var(--app-status-green)' },
     { label: '草稿', value: draftCount, color: 'var(--app-status-amber)' },
     { label: '异常', value: errorCount, color: 'var(--app-status-red)' },
-  ]
-
-  const jobSegments = [
-    { label: '成功/失败', value: finishedCount, color: 'var(--app-status-green)' },
-    { label: '排队中', value: pendingCount, color: 'var(--app-status-amber)' },
-    { label: '执行中', value: processingCount, color: 'var(--app-status-blue)' },
   ]
 
   return (
@@ -95,11 +80,6 @@ export function DashboardPage() {
                 </Card>
               </Col>
             ))}
-            <Col span={24}>
-              <Card className="kpi-card" variant="borderless">
-                <Skeleton active title paragraph={{ rows: 1 }} />
-              </Card>
-            </Col>
           </Row>
         ) : (
           <>
@@ -187,28 +167,6 @@ export function DashboardPage() {
                 </Card>
               </Col>
             </Row>
-            <Card className="kpi-card" variant="borderless" title="下发队列">
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Statistic
-                    title="排队中"
-                    value={pendingCount}
-                    styles={{ content: { color: 'var(--app-status-amber)' }}}
-                  />
-                </Col>
-                <Col span={8}>
-                  <Statistic
-                    title="执行中"
-                    value={processingCount}
-                    styles={{ content: { color: 'var(--app-status-blue)' }}}
-                  />
-                </Col>
-                <Col span={8}>
-                  <Statistic title="已完成" value={finishedCount} />
-                </Col>
-              </Row>
-              <StatusDistributionBar segments={jobSegments} total={jobs.length || 1} />
-            </Card>
           </>
         )}
       </Space>

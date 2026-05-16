@@ -1,5 +1,7 @@
 /** Frontend mirrors of API models (subset). 与后端模型对齐的前端类型子集。 */
 
+export type ConfigProvenance = 'demo-playbook'
+
 export type ProvisionStatus = 'draft' | 'provisioned' | 'error'
 
 export type ArpLevel = 'low' | 'medium' | 'high'
@@ -23,6 +25,7 @@ export interface NetworkSlice {
   status: ProvisionStatus
   version: number
   updatedAt: string
+  provenance?: ConfigProvenance
 }
 
 export interface RedCapDevice {
@@ -39,6 +42,7 @@ export interface RedCapDevice {
   edrxState: string
   powerProfileId?: string
   lastSeenAt: string
+  provenance?: ConfigProvenance
 }
 
 export interface PowerProfile {
@@ -59,6 +63,7 @@ export interface MecNode {
   dnnIds: string[]
   capabilityTags: string[]
   healthProbe?: string
+  provenance?: ConfigProvenance
 }
 
 export interface MecOffloadRule {
@@ -81,6 +86,7 @@ export interface MecOffloadRule {
     mirrorTarget?: string
   }
   hitCount: number
+  provenance?: ConfigProvenance
 }
 
 export interface FiveGLanVn {
@@ -93,6 +99,7 @@ export interface FiveGLanVn {
   multicastPolicy: string
   memberIds: string[]
   status: string
+  provenance?: ConfigProvenance
 }
 
 export interface ProvisioningJob {

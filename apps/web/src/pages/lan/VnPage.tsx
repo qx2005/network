@@ -1,9 +1,20 @@
 import { App, Button, Card, Empty, Form, Input, Modal, Popconfirm, Select, Skeleton, Space, Switch, Table } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { useEffect, useState } from 'react'
-import { apiGet, apiSend } from '../../api/client'
+import { useEffect, useRef, useState } from 'react'
+import { apiGet, apiSend, getRole } from '../../api/client'
+import { DemoAgentDrawer } from '../../components/DemoAgentDrawer'
 import { TruthFeedbackModal } from '../../components/TruthFeedbackModal'
-import type { CommitResult, FiveGLanVn, ProvisionReport } from '../../domain/types'
+import {
+  PLAYBOOK_REQUIRED_SLICE_ROBOT,
+  PLAYBOOK_VN_BODY,
+  SCRIPT_VN_POST,
+  SCRIPT_VN_PRE,
+  buildVnBodyFromDeviceName,
+  scriptVnGenerateFromDevice,
+  vnPlaybookRows,
+  vnPlaybookRowsFromBody,
+} from '../../demo/demoPlaybook'
+import type { CommitResult, FiveGLanVn, NetworkSlice, ProvisionReport } from '../../domain/types'
 import { vnLifecycleStatusZh, vnPolicyZh } from '../../lib/displayZh'
 
 const newVnFormDefaults = {
@@ -18,9 +29,14 @@ export function VnPage() {
   const [rows, setRows] = useState<FiveGLanVn[]>([])
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
+  const [agentOpen, setAgentOpen] = useState(false)
   const [form] = Form.useForm()
+  const viewerOnly = getRole() === 'viewer'
   const [fbOpen, setFbOpen] = useState(false)
   const [fbReport, setFbReport] = useState<ProvisionReport | null>(null)
+  /** Stash API report during onExecute; open modal in onSuccess after stepper completes. */
+  /** onExecute 阶段暂存回执；进度条跑完后在 onSuccess 中再打开弹窗。 */
+  const agentVnReportRef = useRef<ProvisionReport | null>(null)
 
   const closeModal = () => {
     setOpen(false)
@@ -41,7 +57,11 @@ export function VnPage() {
   }, [])
 
   const columns: ColumnsType<FiveGLanVn> = [
-    { title: '显示名', dataIndex: 'displayName' },
+    {
+      title: '显示名',
+      dataIndex: 'displayName',
+      render: (text: string) => <span>{text}</span>,
+    },
     { title: '技术 ID', dataIndex: 'technicalId' },
     { title: '关联切片', dataIndex: 'linkedSliceId' },
     {
@@ -103,6 +123,9 @@ export function VnPage() {
         </Button>
         <Button onClick={() => void load()} loading={loading}>
           刷新
+        </Button>
+        <Button disabled={viewerOnly} onClick={() => setAgentOpen(true)}>
+          Agent 配置
         </Button>
       </Space>
       {loading && rows.length === 0 ? (
@@ -215,6 +238,47 @@ export function VnPage() {
         title="5G LAN VN — 配置回执"
         report={fbReport}
         onClose={() => setFbOpen(false)}
+      />
+      <DemoAgentDrawer
+        open={agentOpen}
+        onClose={() => setAgentOpen(false)}
+        deviceNameStep={{
+          buildGenerateScript: scriptVnGenerateFromDevice,
+          buildFieldRows: (name) => vnPlaybookRowsFromBody(buildVnBodyFromDeviceName(name)),
+        }}
+        fieldRows={vnPlaybookRows()}
+        preScript={SCRIPT_VN_PRE}
+        postScript={SCRIPT_VN_POST}
+        onSuccess={() => {
+          void load()
+          const report = agentVnReportRef.current
+          agentVnReportRef.current = null
+          if (report) {
+            setFbReport(report)
+            setFbOpen(true)
+          }
+        }}
+        onExecute={async (ctx) => {
+          agentVnReportRef.current = null
+          const slices = await apiGet<NetworkSlice[]>('/api/slices')
+          if (!slices.some((s) => s.id === PLAYBOOK_REQUIRED_SLICE_ROBOT)) {
+            throw new Error(
+              `缺少文档要求的切片 ID：${PLAYBOOK_REQUIRED_SLICE_ROBOT}，请先在「切片实例」执行 Agent 配置或手动创建该切片`,
+            )
+          }
+          const body = ctx?.deviceName
+            ? buildVnBodyFromDeviceName(ctx.deviceName)
+            : PLAYBOOK_VN_BODY
+          const res = await apiSend<CommitResult<FiveGLanVn>>(
+            '/api/five-glan/vn',
+            {
+              method: 'POST',
+              body: JSON.stringify(body),
+            },
+            { demoPlaybook: true },
+          )
+          agentVnReportRef.current = res.report
+        }}
       />
     </div>
   )

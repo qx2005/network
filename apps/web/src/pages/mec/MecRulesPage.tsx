@@ -1,8 +1,18 @@
 import { App, Button, Card, Empty, Form, Input, InputNumber, Modal, Popconfirm, Select, Skeleton, Space, Switch, Table } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { useEffect, useState } from 'react'
-import { apiGet, apiSend } from '../../api/client'
+import { useEffect, useRef, useState } from 'react'
+import { apiGet, apiSend, getRole } from '../../api/client'
+import { DemoAgentDrawer } from '../../components/DemoAgentDrawer'
 import { TruthFeedbackModal } from '../../components/TruthFeedbackModal'
+import {
+  PLAYBOOK_MEC_RULE_BODY,
+  SCRIPT_MEC_RULE_POST,
+  SCRIPT_MEC_RULE_PRE,
+  buildMecRuleBodyFromDeviceName,
+  mecRulePlaybookRows,
+  mecRulePlaybookRowsFromBody,
+  scriptMecRuleGenerateFromDevice,
+} from '../../demo/demoPlaybook'
 import type { CommitResult, MecOffloadRule, ProvisionReport } from '../../domain/types'
 import { mecActionTypeZh, protocolLabelZh } from '../../lib/displayZh'
 
@@ -18,9 +28,14 @@ export function MecRulesPage() {
   const [rows, setRows] = useState<MecOffloadRule[]>([])
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
+  const [agentOpen, setAgentOpen] = useState(false)
   const [form] = Form.useForm()
+  const viewerOnly = getRole() === 'viewer'
   const [fbOpen, setFbOpen] = useState(false)
   const [fbReport, setFbReport] = useState<ProvisionReport | null>(null)
+  /** Stash API report during onExecute; open modal in onSuccess after stepper completes. */
+  /** onExecute 阶段暂存回执；进度条跑完后在 onSuccess 中再打开弹窗。 */
+  const agentMecRuleReportRef = useRef<ProvisionReport | null>(null)
 
   const closeModal = () => {
     setOpen(false)
@@ -42,7 +57,11 @@ export function MecRulesPage() {
 
   const columns: ColumnsType<MecOffloadRule> = [
     { title: '优先级', dataIndex: 'priority', width: 100 },
-    { title: '名称', dataIndex: 'name' },
+    {
+      title: '名称',
+      dataIndex: 'name',
+      render: (text: string) => <span>{text}</span>,
+    },
     {
       title: '匹配',
       key: 'm',
@@ -125,6 +144,9 @@ export function MecRulesPage() {
         </Button>
         <Button onClick={() => void load()} loading={loading}>
           刷新
+        </Button>
+        <Button disabled={viewerOnly} onClick={() => setAgentOpen(true)}>
+          Agent 配置
         </Button>
       </Space>
       {loading && rows.length === 0 ? (
@@ -271,6 +293,41 @@ export function MecRulesPage() {
         title="MEC 分流规则 — 配置回执"
         report={fbReport}
         onClose={() => setFbOpen(false)}
+      />
+      <DemoAgentDrawer
+        open={agentOpen}
+        onClose={() => setAgentOpen(false)}
+        deviceNameStep={{
+          buildGenerateScript: scriptMecRuleGenerateFromDevice,
+          buildFieldRows: (name) => mecRulePlaybookRowsFromBody(buildMecRuleBodyFromDeviceName(name)),
+        }}
+        fieldRows={mecRulePlaybookRows()}
+        preScript={SCRIPT_MEC_RULE_PRE}
+        postScript={SCRIPT_MEC_RULE_POST}
+        onSuccess={() => {
+          void load()
+          const report = agentMecRuleReportRef.current
+          agentMecRuleReportRef.current = null
+          if (report) {
+            setFbReport(report)
+            setFbOpen(true)
+          }
+        }}
+        onExecute={async (ctx) => {
+          agentMecRuleReportRef.current = null
+          const body = ctx?.deviceName
+            ? buildMecRuleBodyFromDeviceName(ctx.deviceName)
+            : PLAYBOOK_MEC_RULE_BODY
+          const res = await apiSend<CommitResult<MecOffloadRule>>(
+            '/api/mec/rules',
+            {
+              method: 'POST',
+              body: JSON.stringify(body),
+            },
+            { demoPlaybook: true },
+          )
+          agentMecRuleReportRef.current = res.report
+        }}
       />
     </div>
   )

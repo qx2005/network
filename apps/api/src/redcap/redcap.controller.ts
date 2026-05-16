@@ -35,8 +35,13 @@ export class RedcapController {
   createDevice(
     @Body() body: Record<string, unknown>,
     @Headers('x-user-id') userId?: string,
+    @Headers('x-demo-playbook') demoPb?: string,
   ) {
-    return this.redcap.createDevice(body as never, userId ?? 'system');
+    return this.redcap.createDevice(
+      body as never,
+      userId ?? 'system',
+      demoPb === 'true' || demoPb === '1',
+    );
   }
 
   @Patch('devices/:id/profile')

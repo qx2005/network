@@ -35,8 +35,13 @@ export class FiveGlanController {
   create(
     @Body() body: Record<string, unknown>,
     @Headers('x-user-id') userId?: string,
+    @Headers('x-demo-playbook') demoPb?: string,
   ) {
-    return this.vn.create(body as never, userId ?? 'system');
+    return this.vn.create(
+      body as never,
+      userId ?? 'system',
+      demoPb === 'true' || demoPb === '1',
+    );
   }
 
   @Patch('vn/:id')

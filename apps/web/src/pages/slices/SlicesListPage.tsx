@@ -1,15 +1,32 @@
 import { App, Button, Empty, Popconfirm, Skeleton, Space, Table, Tag, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { apiGet, apiSend } from '../../api/client'
-import type { NetworkSlice } from '../../domain/types'
+import { apiGet, apiSend, getRole } from '../../api/client'
+import { DemoAgentDrawer } from '../../components/DemoAgentDrawer'
+import { TruthFeedbackModal } from '../../components/TruthFeedbackModal'
+import {
+  PLAYBOOK_SLICE_BODY,
+  SCRIPT_SLICE_POST,
+  SCRIPT_SLICE_PRE,
+  buildSliceBodyFromDeviceName,
+  scriptSliceGenerateFromDevice,
+  slicePlaybookRows,
+  slicePlaybookRowsFromBody,
+} from '../../demo/demoPlaybook'
+import { buildDemoAgentSliceProvisionReport } from '../../demo/demoSliceAgentReport'
+import type { NetworkSlice, ProvisionReport } from '../../domain/types'
 
 export function SlicesListPage() {
   const [rows, setRows] = useState<NetworkSlice[]>([])
   const [loading, setLoading] = useState(false)
+  const [agentOpen, setAgentOpen] = useState(false)
+  const [fbOpen, setFbOpen] = useState(false)
+  const [fbReport, setFbReport] = useState<ProvisionReport | null>(null)
+  const agentCreatedSliceRef = useRef<NetworkSlice | null>(null)
   const nav = useNavigate()
   const { message } = App.useApp()
+  const viewerOnly = getRole() === 'viewer'
 
   const load = async () => {
     setLoading(true)
@@ -25,7 +42,12 @@ export function SlicesListPage() {
   }, [])
 
   const columns: ColumnsType<NetworkSlice> = [
-    { title: '名称', dataIndex: 'displayName', key: 'displayName' },
+    {
+      title: '名称',
+      dataIndex: 'displayName',
+      key: 'displayName',
+      render: (text: string) => <span>{text}</span>,
+    },
     {
       title: 'S-NSSAI',
       key: 'snssai',
@@ -102,6 +124,9 @@ export function SlicesListPage() {
         <Button onClick={() => void load()} loading={loading}>
           刷新
         </Button>
+        <Button disabled={viewerOnly} onClick={() => setAgentOpen(true)}>
+          Agent 配置
+        </Button>
       </Space>
       {loading && rows.length === 0 ? (
         <div style={{ padding: '16px 0' }}>
@@ -119,6 +144,48 @@ export function SlicesListPage() {
       ) : (
         <Table rowKey="id" loading={loading} columns={columns} dataSource={rows} />
       )}
+      <DemoAgentDrawer
+        open={agentOpen}
+        onClose={() => setAgentOpen(false)}
+        deviceNameStep={{
+          buildGenerateScript: scriptSliceGenerateFromDevice,
+          buildFieldRows: (name) =>
+            slicePlaybookRowsFromBody(buildSliceBodyFromDeviceName(name)),
+        }}
+        fieldRows={slicePlaybookRows()}
+        preScript={SCRIPT_SLICE_PRE}
+        postScript={SCRIPT_SLICE_POST}
+        onSuccess={() => {
+          void load()
+          const created = agentCreatedSliceRef.current
+          agentCreatedSliceRef.current = null
+          if (created) {
+            setFbReport(buildDemoAgentSliceProvisionReport(created))
+            setFbOpen(true)
+          }
+        }}
+        onExecute={async (ctx) => {
+          agentCreatedSliceRef.current = null
+          const body = ctx?.deviceName
+            ? buildSliceBodyFromDeviceName(ctx.deviceName)
+            : PLAYBOOK_SLICE_BODY
+          const slice = await apiSend<NetworkSlice>(
+            '/api/slices',
+            {
+              method: 'POST',
+              body: JSON.stringify(body),
+            },
+            { demoPlaybook: true },
+          )
+          agentCreatedSliceRef.current = slice
+        }}
+      />
+      <TruthFeedbackModal
+        open={fbOpen}
+        title="切片下发 — 配置回执"
+        report={fbReport}
+        onClose={() => setFbOpen(false)}
+      />
     </div>
   )
 }

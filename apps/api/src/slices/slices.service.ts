@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -85,8 +86,21 @@ export class SlicesService {
     return { ...s };
   }
 
-  create(body: Partial<NetworkSlice>, actor: string): NetworkSlice {
-    const id = `slice-${uuidv4().slice(0, 8)}`;
+  create(
+    body: Partial<NetworkSlice> & { id?: string },
+    actor: string,
+    demoPlaybook = false,
+  ): NetworkSlice {
+    const requestedId =
+      demoPlaybook &&
+      typeof body.id === 'string' &&
+      body.id.trim().length > 0
+        ? body.id.trim()
+        : undefined;
+    const id = requestedId ?? `slice-${uuidv4().slice(0, 8)}`;
+    if (this.slices.some((s) => s.id === id)) {
+      throw new ConflictException(`切片 ID 已存在：${id}`);
+    }
     const row: NetworkSlice = {
       id,
       displayName: body.displayName ?? '新切片',
@@ -103,9 +117,10 @@ export class SlicesService {
       fiveQi: body.fiveQi ?? 9,
       arpLevel: body.arpLevel ?? 'medium',
       memberGroupIds: body.memberGroupIds ?? [],
-      status: 'draft',
-      version: 1,
+      status: demoPlaybook ? 'provisioned' : 'draft',
+      version: demoPlaybook ? 2 : 1,
       updatedAt: nowIso(),
+      provenance: demoPlaybook ? 'demo-playbook' : undefined,
     };
     this.slices.unshift(row);
     this.audit.append({

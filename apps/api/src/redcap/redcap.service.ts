@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { REDCAP_PROFILE_DISABLE } from './redcap.constants';
 import { AuditService } from '../audit/audit.service';
@@ -147,7 +151,15 @@ export class RedcapService {
     return { ...d };
   }
 
-  createDevice(body: Partial<RedCapDevice>, actor: string): RedCapDevice {
+  createDevice(
+    body: Partial<RedCapDevice>,
+    actor: string,
+    demoPlaybook = false,
+  ): RedCapDevice {
+    const supiNorm = body.supi?.trim() || 'imsi-460000000000000';
+    if (this.devices.some((d) => d.supi === supiNorm)) {
+      throw new ConflictException(`SUPI 已存在：${supiNorm}`);
+    }
     const id = `dev-${uuidv4().slice(0, 8)}`;
     const rawPid = body.powerProfileId?.trim();
     const profileId =
@@ -161,7 +173,7 @@ export class RedcapService {
     const row: RedCapDevice = {
       id,
       alias: body.alias?.trim() || '新终端',
-      supi: body.supi?.trim() || 'imsi-460000000000000',
+      supi: supiNorm,
       imeisv: body.imeisv?.trim(),
       sliceId: body.sliceId?.trim() || 'slice-vision-embb',
       vnId: body.vnId?.trim(),
@@ -177,6 +189,7 @@ export class RedcapService {
         : body.edrxState?.trim() || 'disabled',
       powerProfileId: p?.id,
       lastSeenAt: nowIso(),
+      provenance: demoPlaybook ? 'demo-playbook' : undefined,
     };
     this.devices.unshift(row);
     this.audit.append({

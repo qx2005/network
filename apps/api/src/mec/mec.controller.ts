@@ -29,8 +29,13 @@ export class MecController {
   createNode(
     @Body() body: Record<string, unknown>,
     @Headers('x-user-id') userId?: string,
+    @Headers('x-demo-playbook') demoPb?: string,
   ) {
-    return this.mec.createNode(body as never, userId ?? 'system');
+    return this.mec.createNode(
+      body as never,
+      userId ?? 'system',
+      demoPb === 'true' || demoPb === '1',
+    );
   }
 
   @Get('rules')
@@ -44,8 +49,13 @@ export class MecController {
   createRule(
     @Body() body: Record<string, unknown>,
     @Headers('x-user-id') userId?: string,
+    @Headers('x-demo-playbook') demoPb?: string,
   ) {
-    return this.mec.createRule(body as never, userId ?? 'system');
+    return this.mec.createRule(
+      body as never,
+      userId ?? 'system',
+      demoPb === 'true' || demoPb === '1',
+    );
   }
 
   @Patch('rules/:id')

@@ -61,8 +61,8 @@ export function TruthFeedbackModal({
       title={title}
       className="config-receipt-modal"
       destroyOnHidden
-      /* Stack above FormCreateModal (zIndex 1100) so receipt is always visible after apply.
-       * 高于新建弹窗层级，避免回执被遮挡。 */
+      /* Stack above FormCreateModal (1100) and DemoAgentDrawer (1150).
+       * 高于新建弹窗与 Agent 抽屉，回执始终在最前。 */
       zIndex={1200}
       centered
       styles={{

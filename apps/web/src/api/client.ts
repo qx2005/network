@@ -72,8 +72,12 @@ export async function apiGet<T>(path: string): Promise<T> {
 export async function apiSend<T>(
   path: string,
   init: RequestInit,
+  opts?: { demoPlaybook?: boolean },
 ): Promise<T> {
   const merged = new Headers(headers())
+  if (opts?.demoPlaybook) {
+    merged.set('x-demo-playbook', 'true')
+  }
   if (init.headers) {
     const extra = new Headers(init.headers as HeadersInit)
     extra.forEach((v, k) => merged.set(k, v))

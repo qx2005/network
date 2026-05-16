@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { AuditService } from '../audit/audit.service';
 import type { CommitResult, FiveGLanVn } from '../domain/types';
@@ -63,8 +63,21 @@ export class FiveGlanService {
     return { ...v };
   }
 
-  create(body: Partial<FiveGLanVn>, actor: string): CommitResult<FiveGLanVn> {
-    const id = `vn-${uuidv4().slice(0, 8)}`;
+  create(
+    body: Partial<FiveGLanVn> & { id?: string },
+    actor: string,
+    demoPlaybook = false,
+  ): CommitResult<FiveGLanVn> {
+    const requestedId =
+      demoPlaybook &&
+      typeof body.id === 'string' &&
+      body.id.trim().length > 0
+        ? body.id.trim()
+        : undefined;
+    const id = requestedId ?? `vn-${uuidv4().slice(0, 8)}`;
+    if (this.vns.some((v) => v.id === id)) {
+      throw new ConflictException(`VN 组 ID 已存在：${id}`);
+    }
     const row: FiveGLanVn = {
       id,
       displayName: body.displayName ?? '新虚拟网络',
@@ -75,6 +88,7 @@ export class FiveGlanService {
       multicastPolicy: body.multicastPolicy ?? 'ALLOW',
       memberIds: body.memberIds ?? [],
       status: 'active',
+      provenance: demoPlaybook ? 'demo-playbook' : undefined,
     };
     this.vns.unshift(row);
     const report = buildFiveGLanVnCommitReport(row);

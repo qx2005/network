@@ -226,7 +226,7 @@ export function buildRedcapPowerDisableReport(
       operation: '无线资源管理',
       status: 'APPLIED',
       detail:
-        '无线侧已关闭扩展 DRX，终端维持常规寻呼与连续接收策略（演示回执）。',
+        '无线侧已关闭扩展 DRX，终端维持常规寻呼与连续接收策略。',
     },
   ];
   return {

@@ -1,8 +1,18 @@
 import { App, Button, Card, Empty, Form, Input, Skeleton, Space, Table } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
-import { apiGet, apiSend } from '../../api/client'
+import { apiGet, apiSend, getRole } from '../../api/client'
+import { DemoAgentDrawer } from '../../components/DemoAgentDrawer'
 import { FormCreateModal } from '../../components/FormCreateModal'
+import {
+  PLAYBOOK_MEC_NODE_BODY,
+  SCRIPT_MEC_NODE_POST,
+  SCRIPT_MEC_NODE_PRE,
+  buildMecNodeBodyFromDeviceName,
+  mecNodePlaybookRows,
+  mecNodePlaybookRowsFromBody,
+  scriptMecNodeGenerateFromDevice,
+} from '../../demo/demoPlaybook'
 import type { MecNode } from '../../domain/types'
 
 function joinList(v: string[] | undefined): string {
@@ -14,7 +24,9 @@ export function MecNodesPage() {
   const [rows, setRows] = useState<MecNode[]>([])
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
+  const [agentOpen, setAgentOpen] = useState(false)
   const [form] = Form.useForm()
+  const viewerOnly = getRole() === 'viewer'
 
   const closeModal = () => {
     setOpen(false)
@@ -39,7 +51,11 @@ export function MecNodesPage() {
   }, [])
 
   const columns: ColumnsType<MecNode> = [
-    { title: '节点名', dataIndex: 'nodeName' },
+    {
+      title: '节点名',
+      dataIndex: 'nodeName',
+      render: (text: string) => <span>{text}</span>,
+    },
     { title: 'N6 本地端点', dataIndex: 'n6LocalEndpoint' },
     {
       title: 'DNN',
@@ -62,6 +78,9 @@ export function MecNodesPage() {
         </Button>
         <Button onClick={() => void load()} loading={loading}>
           刷新
+        </Button>
+        <Button disabled={viewerOnly} onClick={() => setAgentOpen(true)}>
+          Agent 配置
         </Button>
       </Space>
       {loading && rows.length === 0 ? (
@@ -142,6 +161,27 @@ export function MecNodesPage() {
           </Space>
         </Form>
       </FormCreateModal>
+      <DemoAgentDrawer
+        open={agentOpen}
+        onClose={() => setAgentOpen(false)}
+        deviceNameStep={{
+          buildGenerateScript: scriptMecNodeGenerateFromDevice,
+          buildFieldRows: (name) => mecNodePlaybookRowsFromBody(buildMecNodeBodyFromDeviceName(name)),
+        }}
+        fieldRows={mecNodePlaybookRows()}
+        preScript={SCRIPT_MEC_NODE_PRE}
+        postScript={SCRIPT_MEC_NODE_POST}
+        onSuccess={() => void load()}
+        onExecute={async (ctx) => {
+          const body = ctx?.deviceName
+            ? buildMecNodeBodyFromDeviceName(ctx.deviceName)
+            : PLAYBOOK_MEC_NODE_BODY
+          await apiSend('/api/mec/nodes', {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }, { demoPlaybook: true })
+        }}
+      />
     </div>
   )
 }

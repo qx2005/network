@@ -7,6 +7,8 @@ export type ProvisionStatus = 'draft' | 'provisioned' | 'error';
 
 export type ArpLevel = 'low' | 'medium' | 'high';
 
+export type ConfigProvenance = 'demo-playbook';
+
 export interface NetworkSlice {
   id: string;
   displayName: string;
@@ -26,6 +28,8 @@ export interface NetworkSlice {
   status: ProvisionStatus;
   version: number;
   updatedAt: string;
+  /** Set when created via console demo Agent (x-demo-playbook). */
+  provenance?: ConfigProvenance;
 }
 
 export interface RedCapDevice {
@@ -42,6 +46,7 @@ export interface RedCapDevice {
   edrxState: string;
   powerProfileId?: string;
   lastSeenAt: string;
+  provenance?: ConfigProvenance;
 }
 
 export interface PowerProfile {
@@ -62,6 +67,7 @@ export interface MecNode {
   dnnIds: string[];
   capabilityTags: string[];
   healthProbe?: string;
+  provenance?: ConfigProvenance;
 }
 
 export type OffloadActionType = 'LOCAL_BREAKOUT' | 'NEXT_HOP' | 'MIRROR';
@@ -86,6 +92,7 @@ export interface MecOffloadRule {
     mirrorTarget?: string;
   };
   hitCount: number;
+  provenance?: ConfigProvenance;
 }
 
 export type BroadcastPolicy = 'ALLOW' | 'LIMITED' | 'DENY';
@@ -100,6 +107,7 @@ export interface FiveGLanVn {
   multicastPolicy: BroadcastPolicy;
   memberIds: string[];
   status: 'active' | 'provisioning' | 'error';
+  provenance?: ConfigProvenance;
 }
 
 export type JobStatus = 'pending' | 'processing' | 'success' | 'failed';

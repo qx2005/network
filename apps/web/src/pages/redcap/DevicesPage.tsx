@@ -16,11 +16,23 @@ import {
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
-import { apiGet, apiSend } from '../../api/client'
+import { apiGet, apiSend, getRole } from '../../api/client'
+import { DemoAgentDrawer } from '../../components/DemoAgentDrawer'
 import { FormCreateModal } from '../../components/FormCreateModal'
 import { TruthFeedbackModal } from '../../components/TruthFeedbackModal'
+import {
+  PLAYBOOK_REDCAP_DEVICE_BODY,
+  PLAYBOOK_REQUIRED_SLICE_VISION_EMBB,
+  SCRIPT_REDCAP_POST,
+  SCRIPT_REDCAP_PRE,
+  buildRedcapBodyFromDeviceName,
+  redcapPlaybookRows,
+  redcapPlaybookRowsFromBody,
+  scriptRedcapGenerateFromDevice,
+} from '../../demo/demoPlaybook'
 import type {
   CommitResult,
+  NetworkSlice,
   PowerProfile,
   ProvisionReport,
   RedCapDevice,
@@ -65,7 +77,9 @@ export function RedcapDevicesPage() {
   const [fbOpen, setFbOpen] = useState(false)
   const [fbReport, setFbReport] = useState<ProvisionReport | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [agentOpen, setAgentOpen] = useState(false)
   const [form] = Form.useForm()
+  const viewerOnly = getRole() === 'viewer'
 
   const load = async () => {
     setLoading(true)
@@ -97,7 +111,12 @@ export function RedcapDevicesPage() {
   }
 
   const columns: ColumnsType<RedCapDevice> = [
-    { title: '别名', dataIndex: 'alias', width: 120 },
+    {
+      title: '别名',
+      dataIndex: 'alias',
+      width: 120,
+      render: (text: string) => <span>{text}</span>,
+    },
     { title: 'SUPI', dataIndex: 'supi', width: 160, ellipsis: true },
     { title: '切片', dataIndex: 'sliceId', width: 140, ellipsis: true },
     { title: 'VN', dataIndex: 'vnId', width: 100, ellipsis: true },
@@ -183,7 +202,7 @@ export function RedcapDevicesPage() {
       render: (_, r) => (
         <Popconfirm
           title="确认从清单中移除该终端？"
-          description="演示环境为内存数据；删除后相关审计仍会保留。"
+          description="当前为内存态配置；删除后相关审计仍会保留。"
           okText="删除"
           cancelText="取消"
           okButtonProps={{ danger: true }}
@@ -221,6 +240,9 @@ export function RedcapDevicesPage() {
         </Button>
         <Button onClick={() => void load()} loading={loading}>
           刷新
+        </Button>
+        <Button disabled={viewerOnly} onClick={() => setAgentOpen(true)}>
+          Agent 配置
         </Button>
       </Space>
       {loading && rows.length === 0 ? (
@@ -343,6 +365,37 @@ export function RedcapDevicesPage() {
           </Space>
         </Form>
       </FormCreateModal>
+      <DemoAgentDrawer
+        open={agentOpen}
+        onClose={() => setAgentOpen(false)}
+        deviceNameStep={{
+          buildGenerateScript: scriptRedcapGenerateFromDevice,
+          buildFieldRows: (name) => redcapPlaybookRowsFromBody(buildRedcapBodyFromDeviceName(name)),
+        }}
+        fieldRows={redcapPlaybookRows()}
+        preScript={SCRIPT_REDCAP_PRE}
+        postScript={SCRIPT_REDCAP_POST}
+        onSuccess={() => void load()}
+        onExecute={async (ctx) => {
+          const slices = await apiGet<NetworkSlice[]>('/api/slices')
+          if (!slices.some((s) => s.id === PLAYBOOK_REQUIRED_SLICE_VISION_EMBB)) {
+            throw new Error(
+              `缺少文档要求的切片 ID：${PLAYBOOK_REQUIRED_SLICE_VISION_EMBB}，请先在环境中创建该切片或在「切片实例」执行 Agent 配置`,
+            )
+          }
+          const body = ctx?.deviceName
+            ? buildRedcapBodyFromDeviceName(ctx.deviceName)
+            : PLAYBOOK_REDCAP_DEVICE_BODY
+          await apiSend<RedCapDevice>(
+            '/api/redcap/devices',
+            {
+              method: 'POST',
+              body: JSON.stringify(body),
+            },
+            { demoPlaybook: true },
+          )
+        }}
+      />
       <TruthFeedbackModal
         open={fbOpen}
         title="RedCap 省电策略 — 配置回执"

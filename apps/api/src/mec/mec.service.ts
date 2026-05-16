@@ -87,7 +87,11 @@ export class MecService {
     return [...this.nodes];
   }
 
-  createNode(body: Partial<MecNode>, actor: string): MecNode {
+  createNode(
+    body: Partial<MecNode>,
+    actor: string,
+    demoPlaybook = false,
+  ): MecNode {
     const id = `mec-${uuidv4().slice(0, 8)}`;
     const row: MecNode = {
       id,
@@ -96,6 +100,7 @@ export class MecService {
       dnnIds: body.dnnIds ?? [],
       capabilityTags: body.capabilityTags ?? [],
       healthProbe: body.healthProbe,
+      provenance: demoPlaybook ? 'demo-playbook' : undefined,
     };
     this.nodes.unshift(row);
     this.audit.append({
@@ -116,6 +121,7 @@ export class MecService {
   createRule(
     body: Partial<MecOffloadRule>,
     actor: string,
+    demoPlaybook = false,
   ): CommitResult<MecOffloadRule> {
     const id = `rule-${uuidv4().slice(0, 8)}`;
     const row: MecOffloadRule = {
@@ -134,6 +140,7 @@ export class MecService {
         bypassPublicNetwork: true,
       },
       hitCount: 0,
+      provenance: demoPlaybook ? 'demo-playbook' : undefined,
     };
     this.rules.unshift(row);
     const report = buildMecRuleCommitReport(row);

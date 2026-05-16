@@ -41,8 +41,13 @@ export class SlicesController {
   create(
     @Body() body: Record<string, unknown>,
     @Headers('x-user-id') userId?: string,
+    @Headers('x-demo-playbook') demoPb?: string,
   ) {
-    return this.slices.create(body as never, userId ?? 'system');
+    return this.slices.create(
+      body as never,
+      userId ?? 'system',
+      demoPb === 'true' || demoPb === '1',
+    );
   }
 
   @Patch(':id')
