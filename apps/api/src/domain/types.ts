@@ -53,6 +53,12 @@ export interface PowerProfile {
   id: string;
   templateName: string;
   deviceTypeTag?: string;
+  /**
+   * When false, eDRX / PTW are not used (e.g. PSM + sparse RA / TAU only).
+   * Omit or true: classic eDRX template.
+   * false：不使用 eDRX（如纯 PSM + 周期上报/TAU）；省略或 true 表示启用 eDRX 模板。
+   */
+  edrxEnabled?: boolean;
   edrxCycleSeconds: number;
   ptwSeconds: number;
   drxMs: number;

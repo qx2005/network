@@ -7,7 +7,7 @@ import { TruthFeedbackModal } from '../../components/TruthFeedbackModal'
 import {
   PLAYBOOK_MEC_RULE_BODY,
   SCRIPT_MEC_RULE_POST,
-  SCRIPT_MEC_RULE_PRE,
+  scriptMecRulePreForAgent,
   buildMecRuleBodyFromDeviceName,
   mecRulePlaybookRows,
   mecRulePlaybookRowsFromBody,
@@ -302,7 +302,7 @@ export function MecRulesPage() {
           buildFieldRows: (name) => mecRulePlaybookRowsFromBody(buildMecRuleBodyFromDeviceName(name)),
         }}
         fieldRows={mecRulePlaybookRows()}
-        preScript={SCRIPT_MEC_RULE_PRE}
+        preScript={scriptMecRulePreForAgent}
         postScript={SCRIPT_MEC_RULE_POST}
         onSuccess={() => {
           void load()

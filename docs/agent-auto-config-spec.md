@@ -77,7 +77,160 @@
 | ARP / 抢占档位 | **高** |
 | 成员分组 ID | **grp-robot-arms** |
 
-文档未写平台**切片技术 ID**；若创建接口返回自动生成 ID，则 VN「关联切片 ID」仍须使用文档 **§3.5 中写死的 `slice-robot-urllc`**（见 §4），演示侧须通过**预置种子**或**支持按文档 ID 创建**使该 ID 与 uRLLC 切片一致——**不得**把 VN 改成别的 ID 以图省事。
+**Agent · 设备名称「注水机」**：冻结为文档 **「高精度灌装注水机 uRLLC 切片」**整段（`PLAYBOOK_SLICE_BODY_FILLER` 等），切片 ID **`slice-filler-urllc`**，**不得**再与通用模板共用 `slice-robot-urllc`。
+
+**Agent · 其它设备名（如四轴机械臂模块等）**：在复用机械臂 QoS 模板的同时，须生成 **独立的切片技术 ID**（如 `slice-agent-*`）与 **独立 6 位 hex SD**，避免与种子 `slice-robot-urllc` 的 ID 及 S-NSSAI+DNN 组合冲突；RedCap / VN / MEC 规则的关联 ID 与 VN 绑定须与 `demoAgentSliceIdForDeviceName` / `demoAgentVnIdForDeviceName` 一致。
+
+**Agent · 设备名称「环形模块」**（与拓扑库选项一致）：须**不使用**通用设备名推导，而**逐字段冻结**为文档 **§3.1b「高速环形线协同 uRLLC 切片」**及同场景后续段落（实现见 `PLAYBOOK_SLICE_BODY_RINGLINE`、`PLAYBOOK_REDCAP_DEVICE_BODY_RINGLINE`、`PLAYBOOK_MEC_NODE_BODY_RINGLINE`、`PLAYBOOK_MEC_RULE_BODY_RINGLINE`、`PLAYBOOK_VN_BODY_RINGLINE` / `buildSliceBodyFromDeviceName` 等）：切片 **`slice-ringline-urllc`**，SD **`020888`**，DNN **`dnn-ringline.private`**，QoS **30/30、100/100、300**，成员 **`grp-ring-movers`**。文档中的 **「高精度灌装注水机 uRLLC 切片」**由 **「注水机」**设备选项单独选用（见上文）；**不由「环形模块」Agent 预设选用**。
+
+### 3.1b 新建切片（高速环形线协同 uRLLC）
+
+| 项 | 值（摘自《5G-A数据.md》该段） |
+|----|----------------|
+| 切片技术 ID（演示 Agent） | **slice-ringline-urllc** |
+| 切片显示名 | 高速环形线协同 uRLLC 切片 |
+| 描述 | 用于车间高速磁悬浮环形传送带的多动子（穿梭车）同步控制与实时位置反馈，要求极低时延与强确定性，确保动子间距精准控制与防撞。 |
+| SST / SD | 2 / **020888** |
+| 默认 DNN | **dnn-ringline.private** |
+| 允许 LADN | 开启 |
+| 上行/下行 GBR (Mbps) | **30 / 30** |
+| 上行/下行 MBR (Mbps) | **100 / 100** |
+| AMBR (Mbps) | **300** |
+| 5QI | **82** |
+| ARP | **高** |
+| 成员分组 ID | **grp-ring-movers** |
+
+> 描述行以仓库内最新 md 为准；若上表与 md 逐字不一致，以 md 为准。
+
+文档未写平台**切片技术 ID**；若创建接口返回自动生成 ID，则默认机械臂场景 VN「关联切片 ID」仍须使用文档 **§3.5 中写死的 `slice-robot-urllc`**（见 §4），演示侧须通过**预置种子**或**支持按文档 ID 创建**使该 ID 与 uRLLC 切片一致——**不得**把 VN 改成别的 ID 以图省事。
+
+### 3.1c 高精度灌装注水机 uRLLC（Agent 设备「注水机」）
+
+| 项 | 值（摘自《5G-A数据.md》该段） |
+|----|----------------|
+| 切片技术 ID（演示 Agent） | **slice-filler-urllc** |
+| 切片显示名 | 高精度灌装注水机 uRLLC 切片 |
+| SST / SD | 2 / **020999** |
+| 默认 DNN | **dnn-filler.private** |
+| GBR / MBR / AMBR (Mbps) | **10/10**、**30/30**、**100** |
+| 成员分组 ID | **grp-liquid-fillers** |
+
+同场景终端、MEC、规则、VN 的 SUPI、网段、`vn-filler-lan`、`10.10.4.10` 等字面量均以仓库内最新 md 为准。该场景 VN「关联切片 ID」须为 **slice-filler-urllc**（与切片技术 ID 一致）。
+
+### 3.1d 高速旋转供料协同 uRLLC（Agent 设备「旋转供料模块」）
+
+**Agent · 设备名称「旋转供料模块」**（与拓扑库选项一致）：须**逐字段冻结**为《5G-A数据.md》本段及同场景后续「连接新终端 / 注册节点 / 新建规则 / 新建 VN 组」；实现对应 `PLAYBOOK_SLICE_BODY_ROTARY`、`PLAYBOOK_REDCAP_DEVICE_BODY_ROTARY`、`PLAYBOOK_MEC_NODE_BODY_ROTARY`、`PLAYBOOK_MEC_RULE_BODY_ROTARY`、`PLAYBOOK_VN_BODY_ROTARY` / `isRotaryFeedModuleAgentSelection` / `buildSliceBodyFromDeviceName` 等，**不得**走通用 `slice-agent-*` 推导。
+
+| 项 | 值（摘自《5G-A数据.md》该段） |
+|----|----------------|
+| 切片技术 ID（演示 Agent） | **slice-rotary-urllc** |
+| 切片显示名 | 高速旋转供料协同 uRLLC 切片 |
+| SST / SD | 2 / **020777** |
+| 默认 DNN | **dnn-rotary-feeder.private** |
+| GBR / MBR / AMBR (Mbps) | **15/15**、**40/40**、**150** |
+| 成员分组 ID | **grp-rotary-feeders** |
+| VN 组 ID | **vn-rotary-lan** |
+| RedCap 别名 | **2号线-高速星轮理料盘#01** |
+| RedCap SUPI | **imsi-460001234560301** |
+
+同场景 MEC 节点、规则、VN 成员 SUPI、网段、`10.10.5.10` 等字面量均以仓库内最新 md 为准。
+
+### 3.1e 高速物料推送协同 uRLLC（Agent 设备「物料推送模块」）
+
+**Agent · 设备名称「物料推送模块」**（与拓扑库选项一致）：须**逐字段冻结**为《5G-A数据.md》本段及同场景后续段落；实现对应 `PLAYBOOK_SLICE_BODY_PUSHER`、`PLAYBOOK_REDCAP_DEVICE_BODY_PUSHER`、`PLAYBOOK_MEC_NODE_BODY_PUSHER`、`PLAYBOOK_MEC_RULE_BODY_PUSHER`、`PLAYBOOK_VN_BODY_PUSHER` / `isMaterialPushModuleAgentSelection` / `buildSliceBodyFromDeviceName` 等，**不得**走通用 `slice-agent-*` 推导。
+
+| 项 | 值（摘自《5G-A数据.md》该段） |
+|----|----------------|
+| 切片技术 ID（演示 Agent） | **slice-pusher-urllc** |
+| 切片显示名 | 高速物料推送协同 uRLLC 切片 |
+| SST / SD | 2 / **020555** |
+| 默认 DNN | **dnn-pusher.private** |
+| GBR / MBR / AMBR (Mbps) | **10/10**、**25/25**、**100** |
+| 成员分组 ID | **grp-material-pushers** |
+| VN 组 ID | **vn-pusher-lan** |
+| RedCap 别名 | **4号线-高速分拣剔除推杆#A** |
+| RedCap SUPI | **imsi-460001234560401** |
+
+同场景 MEC 规则优先级 **12**、目的 **`10.49.2.0/24`**、端口 **`34964` / `502`**、下一跳 **`10.10.6.10`** 等字面量均以仓库内最新 md 为准。
+
+### 3.1f 视觉定位与伺服推送协同 uRLLC（Agent 设备「定位推送模块」）
+
+**Agent · 设备名称「定位推送模块」**（与拓扑库选项一致）：须**逐字段冻结**为《5G-A数据.md》本段及同场景后续「连接新终端 / 注册节点 / 新建规则 / 新建 VN 组」；实现对应 `PLAYBOOK_SLICE_BODY_POS_PUSHER`、`PLAYBOOK_REDCAP_DEVICE_BODY_POS_PUSHER`、`PLAYBOOK_MEC_NODE_BODY_POS_PUSHER`、`PLAYBOOK_MEC_RULE_BODY_POS_PUSHER`、`PLAYBOOK_VN_BODY_POS_PUSHER` / `isPositioningPushModuleAgentSelection` / `buildSliceBodyFromDeviceName` 等，**不得**走通用 `slice-agent-*` 推导。
+
+| 项 | 值（摘自《5G-A数据.md》该段） |
+|----|----------------|
+| 切片技术 ID（演示 Agent） | **slice-pos-pusher-urllc** |
+| 切片显示名 | 视觉定位与伺服推送协同 uRLLC 切片 |
+| SST / SD | 2 / **020444** |
+| 默认 DNN | **dnn-pos-pusher.private** |
+| GBR / MBR / AMBR (Mbps) | **上行 50 / 下行 15**、**150/40**、**300** |
+| 5QI | **80** |
+| 成员分组 ID | **grp-pos-pushers** |
+| VN 组 ID | **vn-pos-pusher-lan** |
+| RedCap 别名 | **5号线-高精定位伺服推杆#01** |
+| RedCap SUPI | **imsi-460001234560501** |
+
+同场景 MEC 规则优先级 **14**、目的 **`10.50.2.0/24`**、端口 **`3956` / `34964`**、下一跳 **`10.10.7.10`**、节点能力标签 **`N6_BREAKOUT`, `uRLLC_Optimized`, `Edge_Computing_Vision`**（文档未写 `L2_Bridging`）等字面量均以仓库内最新 md 为准。
+
+### 3.1g 工业相机大上行切片（Agent 设备「工业相机模块」）
+
+**Agent · 设备名称「工业相机模块」**（与拓扑库选项一致；兼容旧值「工业相机」）：须**逐字段冻结**为《5G-A数据.md》本段及同场景后续「连接新终端 / 注册节点 / 新建规则 / 新建 VN 组」；实现对应 `PLAYBOOK_SLICE_BODY_VISION_EMBB`、`PLAYBOOK_REDCAP_DEVICE_BODY_VISION_EMBB`、`PLAYBOOK_MEC_NODE_BODY_VISION_EMBB`、`PLAYBOOK_MEC_RULE_BODY_VISION_EMBB`、`PLAYBOOK_VN_BODY_VISION_EMBB` / `isIndustrialCameraAgentSelection` / `buildSliceBodyFromDeviceName` 等，**不得**走通用 `slice-agent-*` 推导。
+
+| 项 | 值（摘自《5G-A数据.md》该段） |
+|----|----------------|
+| 切片技术 ID（演示 Agent） | **slice-vision-embb** |
+| 切片显示名 | 工业相机大上行切片 |
+| SST / SD | **1**（eMBB） / **010888** |
+| 默认 DNN | **dnn-vision.private** |
+| GBR / MBR / AMBR (Mbps) | **上行 150 / 下行 10**、**300/50**、**500** |
+| 5QI | **80** |
+| ARP | **中** |
+| 成员分组 ID | **grp-ai-cameras** |
+| VN 组 ID | **vn-vision-lan** |
+| RedCap 别名 | **工业相机** |
+| RedCap SUPI | **imsi-460001234560601** |
+
+同场景 MEC 规则优先级 **30**、目的 **`10.51.2.0/24`**、端口 **`3956` / `554` / `8081`**、下一跳 **`10.10.8.10`**、节点能力 **`N6_BREAKOUT`, `Massive_Uplink`, `Edge_AI_GPU`** 等字面量均以仓库内最新 md 为准。平台语义层须允许 **SST=1 + 5QI=80**（文档字面量），见 `slice-semantics`。
+
+### 3.1h 气动伸缩夹爪协同 uRLLC（Agent 设备「气动伸缩夹爪模块」）
+
+**Agent · 设备名称「气动伸缩夹爪模块」**（与拓扑库选项一致；兼容旧值「气动伸缩夹爪」）：须**逐字段冻结**为《5G-A数据.md》本段及同场景后续「连接新终端 / 注册节点 / 新建规则 / 新建 VN 组」；实现对应 `PLAYBOOK_SLICE_BODY_GRIPPER`、`PLAYBOOK_REDCAP_DEVICE_BODY_GRIPPER`、`PLAYBOOK_MEC_NODE_BODY_GRIPPER`、`PLAYBOOK_MEC_RULE_BODY_GRIPPER`、`PLAYBOOK_VN_BODY_GRIPPER` / `isPneumaticGripperModuleAgentSelection` / `buildSliceBodyFromDeviceName` 等，**不得**走通用 `slice-agent-*` 推导。
+
+| 项 | 值（摘自《5G-A数据.md》该段） |
+|----|----------------|
+| 切片技术 ID（演示 Agent） | **slice-gripper-urllc** |
+| 切片显示名 | 气动伸缩夹爪协同 uRLLC 切片 |
+| SST / SD | 2 / **020333** |
+| 默认 DNN | **dnn-gripper.private** |
+| GBR / MBR / AMBR (Mbps) | **10/10**、**25/25**、**100** |
+| 5QI | **82** |
+| ARP | **高** |
+| 成员分组 ID | **grp-pneumatic-grippers** |
+| VN 组 ID | **vn-gripper-lan** |
+| RedCap 别名 | **气动伸缩夹爪** |
+| RedCap SUPI | **imsi-460001234560701** |
+
+同场景 MEC 规则优先级 **16**、目的 **`10.52.2.0/24`**、端口 **`34964` / `502`**、下一跳 **`10.10.9.10`**、节点能力 **`N6_BREAKOUT`, `uRLLC_Optimized`, `L2_Bridging`** 等字面量均以仓库内最新 md 为准。
+
+### 3.1i 边缘计算单元协同专属切片（Agent 设备「边缘计算单元模块」）
+
+**Agent · 设备名称「边缘计算单元模块」**（与拓扑库选项一致；兼容旧值「边缘计算单元」）：须**逐字段冻结**为《5G-A数据.md》本段及同场景后续「连接新终端 / 注册节点 / 新建规则 / 新建 VN 组」；实现对应 `PLAYBOOK_SLICE_BODY_EDGE_COMPUTE`、`PLAYBOOK_REDCAP_DEVICE_BODY_EDGE_COMPUTE`、`PLAYBOOK_MEC_NODE_BODY_EDGE_COMPUTE`、`PLAYBOOK_MEC_RULE_BODY_EDGE_COMPUTE`、`PLAYBOOK_VN_BODY_EDGE_COMPUTE` / `isEdgeComputeUnitModuleAgentSelection` / `buildSliceBodyFromDeviceName` 等，**不得**走通用 `slice-agent-*` 推导。
+
+| 项 | 值（摘自《5G-A数据.md》该段） |
+|----|----------------|
+| 切片技术 ID（演示 Agent） | **slice-edge-compute** |
+| 切片显示名 | 边缘计算单元协同专属切片 |
+| SST / SD | 2 / **020111** |
+| 默认 DNN | **dnn-edge-compute.private** |
+| GBR / MBR / AMBR (Mbps) | **200/200**、**1000/1000**、**2000** |
+| 5QI | **80** |
+| ARP | **高** |
+| 成员分组 ID | **grp-edge-compute** |
+| VN 组 ID | **vn-edge-compute-lan** |
+| RedCap 别名 | **边缘计算单元** |
+| RedCap SUPI | **imsi-460001234560901** |
+
+同场景 MEC 规则优先级 **5**、目的 **`10.54.2.0/24`**、端口 **`1883` / `9092` / `4840`**、下一跳 **`10.10.11.10`**、节点能力 **`N6_BREAKOUT`, `Edge_Computing_GPU`, `Data_Aggregation`** 等字面量均以仓库内最新 md 为准。
 
 ### 3.2 连接新终端（RedCap）
 
@@ -86,15 +239,15 @@
 | 别名 | 1号线-高速机械臂A |
 | SUPI | imsi-460001234560001 |
 | IMEISV（可选） | 867400012345671 |
-| 切片 ID | **slice-vision-embb**（文档原文） |
-| VN ID（可选） | 留空 |
+| 切片 ID | **slice-robot-urllc**（与演示种子、《5G-A数据.md》机械臂单场景一致） |
+| VN ID（可选） | **vn-line1**（灌装线 uRLLC 二层专网） |
 | IP（可选） | 10.45.1.55 |
 | RRC 状态 | RRC_CONNECTED |
 | 信号质量描述 | RSRP -65 dBm |
 | 流量累计 (MB) | 12054 |
 | 省电模板 | **禁用** |
 
-文档中 RRC 旁注写「相机…视频」与「机械臂」别名并存，**仍按原文录入**，不在 Playbook 中改写。
+文档中曾存在「相机」旁注与「机械臂」别名混排；**演示种子已扩展为 uRLLC / eMBB / mMTC 多切片 + 多终端**，以仓库内 `5G-A数据.md` 与 Playbook 为准；常电终端**省电模板一律禁用**。
 
 ### 3.3 注册节点（MEC）
 
@@ -116,7 +269,7 @@
 | 源网段 CIDR（可选） | 留空 |
 | 协议 | TCP |
 | 端口范围（逗号分隔） | 102, 4840 |
-| VN ID（可选） | vn-robot-lan |
+| VN ID（可选） | vn-line1 |
 | 动作类型 | 本地分流 |
 | 下一跳（可选） | 10.10.2.10 |
 | 绕过公网 | 开启 |
@@ -125,35 +278,27 @@
 
 | 项 | 值（摘自文档） |
 |----|----------------|
-| 显示名 | 装箱码垛机械臂 PROFINET 专网 |
-| 技术 ID | vn-robot-lan |
+| 显示名 | 灌装线 1 二层专网 |
+| 技术 ID | vn-line1 |
 | 关联切片 ID | **slice-robot-urllc**（文档原文） |
-| 成员终端 ID（逗号分隔） | imsi-460001234560002 |
+| 成员终端 ID（逗号分隔） | dev-arm-01 |
 | 允许以太网 PDU | 开启 |
 | 广播策略 | 允许 |
-| 组播策略 | 允许 |
+| 组播策略 | 限制（LIMITED） |
 
 ---
 
-## 4. 文档内 ID 差异与演示顺序（严格遵循、不合并）
+## 4. 文档内 ID 与演示种子（单机械臂演示）
 
-《5G-A数据.md》中：
+《5G-A数据.md》与 API **内存种子**当前对齐为 **极简产线演示**（仅机械臂）：
 
-- **RedCap** 使用的切片 ID 为 **`slice-vision-embb`**；  
-- **VN 组** 关联切片 ID 为 **`slice-robot-urllc`**。
+- **uRLLC**：`slice-robot-urllc` — 预置机械臂终端；`vn-line1` 二层专网同绑此切片。  
+- **预置终端**：`dev-arm-01`（`1号线-高速机械臂A`），省电模板 **禁用**。  
+- **预置 VN**：`vn-line1`，成员 **`dev-arm-01`**。  
+- **省电模板列表**：仍保留 §`docs/redcap-power-profiles-industrial.md` 中电池/物联类模板，供 **后续手动接入** 传感、标签、表计等使用；种子终端不引用这些模板。  
+- **MEC**：种子可为空，由 Playbook 创建（§3.3、§3.4）。
 
-**禁止**在 Playbook 中为「省事」统一成一个 ID。**演示环境**须满足：
-
-1. 系统中存在 **`slice-vision-embb`**，以满足终端绑定（预置在切片种子数据，或由「切片实例」演示流按该 ID 创建一条符合 eMBB/方案 1 语义的切片——若仅实现 uRLLC 单条 creation，则种子库须另含 `slice-vision-embb`）。  
-2. 系统中存在 **`slice-robot-urllc`**，与「新建切片」节 uRLLC 切片对应（创建 uRLLC 时使用该技术 ID，与文档 VN 节一致）。
-
-**推荐演示点击顺序**（仅供流程顺畅，非 AI 推断）：
-
-1. 切片实例：创建 §3.1 uRLLC 切片，技术 ID 为 **`slice-robot-urllc`**（与 §3.5 一致）。  
-2. 确认种子中已有 **`slice-vision-embb`**（或提前由产品保证与「方案 1」一致的切片存在）。  
-3. VN 组 → 注册节点 → 分流规则 → RedCap 终端（后三者可相对独立，但规则依赖 VN、终端依赖切片存在）。
-
-若用户**只点某一页**按钮：仅执行该页 Playbook；若 API 因缺切片失败，用**明确 Toast** 提示缺哪一 ID，**不**自动改写为文档以外的 ID。
+若需恢复「视觉 eMBB + mMTC」等多切片混合演示，须在 `SlicesService` / `RedcapService` 中重新加入对应种子对象。
 
 ---
 
@@ -195,7 +340,7 @@
 
 | 场景 | 行为 |
 |------|------|
-| 依赖缺失（如缺 slice-vision-embb） | Toast/日志提示文档要求的 ID 不存在；不自动换 ID。 |
+| 依赖缺失（如缺 slice-robot-urllc） | Toast/日志提示文档要求的 ID 不存在；不自动换 ID。 |
 | 对象已存在 | 按产品规则跳过或提示「演示项已存在」，**不**改写为未在 md 中出现的字段。 |
 | viewer 角色 | 按钮禁用或提示需运维角色。 |
 
@@ -213,7 +358,7 @@
 
 1. 全链路参数与《5G-A数据.md》**对表抽查**无误。  
 2. 无调用任何 AI API（可通过网络策略/代码评审确认）。  
-3. `slice-vision-embb` 与 `slice-robot-urllc`**同时按文档存在**且无被 Playbook 私自合并。  
+3. 预置数据含 **一条 uRLLC 切片**、**一条机械臂终端** 与 **vn-line1**；省电模板为册（无种子终端绑定）；MEC 可由 Playbook 创建。  
 4. 界面不虚假宣传「大模型」「智能推理」；假冒效果仅限动画与文案风格。  
 
 ---
@@ -223,7 +368,12 @@
 | 版本 | 日期 | 说明 |
 |------|------|------|
 | 0.1 | 2026-05-16 | 初稿。 |
-| 0.2 | 2026-05-16 | 明确无 AI API、演示假冒 Agent；Playbook 严格对齐《5G-A数据.md》；终端与 VN 切片 ID 按原文保留；删减「canonical 合并」表述。 |
+| 0.4 | 2026-05-17 | 多切片种子与终端绑定；VN 改为 `vn-line1`；省电与 5G LAN 语义对齐。 |
+| 0.5 | 2026-05-16 | 演示种子改为单机械臂 + 单切片；§4、§9 叙述同步 |
+| 0.6 | 2026-05-16 | 新增 §3.1f「定位推送模块」与《5G-A数据.md》视觉定位+伺服推送整段 Playbook 对齐说明 |
+| 0.7 | 2026-05-16 | 新增 §3.1g「工业相机模块」大上行 eMBB（slice-vision-embb）及 SST=1+5QI=80 语义放行说明 |
+| 0.8 | 2026-05-16 | 新增 §3.1h「气动伸缩夹爪模块」uRLLC（slice-gripper-urllc）Playbook 对齐说明 |
+| 0.9 | 2026-05-16 | 新增 §3.1i「边缘计算单元模块」slice-edge-compute Playbook 对齐说明 |
 
 ---
 

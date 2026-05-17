@@ -37,15 +37,15 @@ export function SliceEditorPage() {
   useEffect(() => {
     if (isNew) {
       form.setFieldsValue({
-        displayName: '新切片',
+        displayName: 'AI 质检视觉 eMBB 切片（草稿）',
         sst: 1,
-        dnn: 'dnn-default.private',
-        ladnAllowed: false,
-        ulGbrMbps: 10,
-        dlGbrMbps: 50,
-        ulMbrMbps: 20,
-        dlMbrMbps: 100,
-        ambrMbps: 200,
+        dnn: 'dnn-vision.private',
+        ladnAllowed: true,
+        ulGbrMbps: 100,
+        dlGbrMbps: 20,
+        ulMbrMbps: 150,
+        dlMbrMbps: 50,
+        ambrMbps: 600,
         fiveQi: 9,
         arpLevel: 'medium',
         memberGroupIds: [],

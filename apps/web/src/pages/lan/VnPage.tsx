@@ -5,10 +5,10 @@ import { apiGet, apiSend, getRole } from '../../api/client'
 import { DemoAgentDrawer } from '../../components/DemoAgentDrawer'
 import { TruthFeedbackModal } from '../../components/TruthFeedbackModal'
 import {
-  PLAYBOOK_REQUIRED_SLICE_ROBOT,
   PLAYBOOK_VN_BODY,
-  SCRIPT_VN_POST,
-  SCRIPT_VN_PRE,
+  playbookRequiredLinkedSliceId,
+  scriptVnPostForAgent,
+  scriptVnPreForAgent,
   buildVnBodyFromDeviceName,
   scriptVnGenerateFromDevice,
   vnPlaybookRows,
@@ -21,7 +21,7 @@ const newVnFormDefaults = {
   ethernetPduAllowed: true,
   broadcastPolicy: 'LIMITED',
   multicastPolicy: 'ALLOW',
-  linkedSliceId: 'slice-vision-embb',
+  linkedSliceId: '',
 } as const
 
 export function VnPage() {
@@ -193,13 +193,17 @@ export function VnPage() {
             <Form.Item name="technicalId" label="技术 ID（可留空自动生成）">
               <Input />
             </Form.Item>
-            <Form.Item name="linkedSliceId" label="关联切片 ID">
-              <Input />
+            <Form.Item
+              name="linkedSliceId"
+              label="关联切片 ID"
+              rules={[{ required: true, message: '请填写关联切片 ID' }]}
+            >
+              <Input placeholder="创建切片后填写其技术 ID" />
             </Form.Item>
           </Card>
           <Card className="form-section-card" size="small" title="成员配置">
             <Form.Item name="memberIds" label="成员终端 ID（逗号分隔）">
-              <Input placeholder="dev-1,dev-2" />
+              <Input placeholder="dev-arm-01" />
             </Form.Item>
           </Card>
           <Card className="form-section-card" size="small" title="策略">
@@ -247,8 +251,8 @@ export function VnPage() {
           buildFieldRows: (name) => vnPlaybookRowsFromBody(buildVnBodyFromDeviceName(name)),
         }}
         fieldRows={vnPlaybookRows()}
-        preScript={SCRIPT_VN_PRE}
-        postScript={SCRIPT_VN_POST}
+        preScript={scriptVnPreForAgent}
+        postScript={scriptVnPostForAgent}
         onSuccess={() => {
           void load()
           const report = agentVnReportRef.current
@@ -261,9 +265,10 @@ export function VnPage() {
         onExecute={async (ctx) => {
           agentVnReportRef.current = null
           const slices = await apiGet<NetworkSlice[]>('/api/slices')
-          if (!slices.some((s) => s.id === PLAYBOOK_REQUIRED_SLICE_ROBOT)) {
+          const requireSliceId = playbookRequiredLinkedSliceId(ctx?.deviceName)
+          if (!slices.some((s) => s.id === requireSliceId)) {
             throw new Error(
-              `缺少文档要求的切片 ID：${PLAYBOOK_REQUIRED_SLICE_ROBOT}，请先在「切片实例」执行 Agent 配置或手动创建该切片`,
+              `缺少文档要求的切片 ID：${requireSliceId}，请先在「切片实例」执行 Agent 配置或手动创建该切片`,
             )
           }
           const body = ctx?.deviceName

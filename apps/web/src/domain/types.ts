@@ -49,6 +49,11 @@ export interface PowerProfile {
   id: string
   templateName: string
   deviceTypeTag?: string
+  /**
+   * When false, eDRX is off (PSM-only style templates).
+   * false 表示关闭 eDRX（如 PSM 主导的超长周期表计）。
+   */
+  edrxEnabled?: boolean
   edrxCycleSeconds: number
   ptwSeconds: number
   drxMs: number

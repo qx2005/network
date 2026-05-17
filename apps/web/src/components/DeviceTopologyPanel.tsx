@@ -43,6 +43,19 @@ type NodeKind =
   | 'mec_rule'
   | 'vn_group'
 
+/** Sidebar palette entry id — industrial hardware narrative / 侧栏模块项（硬件叙事） */
+type HardwarePaletteId =
+  | 'hw_ring_module'
+  | 'hw_robot_4axis'
+  | 'hw_water_injector'
+  | 'hw_rotary_feed'
+  | 'hw_material_push'
+  | 'hw_position_push'
+  | 'hw_industrial_camera'
+  | 'hw_pneumatic_gripper'
+  | 'hw_lift_module'
+  | 'hw_edge_compute'
+
 type TopoNodeState = 'inactive' | 'placed' | 'active' | 'error'
 
 type EdgeState = 'pending' | 'ok' | 'error'
@@ -53,50 +66,101 @@ export interface TopologyStored {
 }
 
 interface PaletteDef {
-  kind: NodeKind
+  id: HardwarePaletteId
   label: string
   tag: string
   description: string
 }
 
-const PALETTE: PaletteDef[] = [
+/** Classify demo RedCap rows into camera vs robot/arm buckets for palette filters. */
+function isIndustrialCameraAlias(alias: string): boolean {
+  return /相机|摄像|灯检|视觉|AI检|高速AI/i.test(alias)
+}
+
+function isRoboticArmAlias(alias: string): boolean {
+  if (isIndustrialCameraAlias(alias)) return false
+  return /臂|机械手|主轴|关节|机器人|AGV|PLC|灌装|无线PLC/i.test(alias)
+}
+
+const HARDWARE_PALETTE: PaletteDef[] = [
   {
-    kind: 'anchor_core',
-    label: '专网核心',
-    tag: '核心',
-    description: 'UPF / 策略锚点',
+    id: 'hw_ring_module',
+    label: '环形模块',
+    tag: '产线',
+    description:
+      '环形容器/回转产线工位；拓扑上关联专网核心锚点与网络切片承载。',
   },
   {
-    kind: 'slice',
-    label: '网络切片',
-    tag: '核心',
-    description: '切片实例节点',
+    id: 'hw_robot_4axis',
+    label: '四轴机械臂模块',
+    tag: '执行',
+    description:
+      '四轴机械臂类执行终端（与 RedCap 别名中机械臂关键字匹配的在线终端）。',
   },
   {
-    kind: 'redcap_device',
-    label: 'RedCap 终端',
-    tag: '接入',
-    description: '轻量物联终端',
+    id: 'hw_water_injector',
+    label: '注水机',
+    tag: '工位',
+    description: '灌装/注水工位；拓扑上对应 5G LAN 工业子网（VN）接入面。',
   },
   {
-    kind: 'mec_node',
-    label: 'MEC 节点',
+    id: 'hw_rotary_feed',
+    label: '旋转供料模块',
+    tag: '供料',
+    description: '转盘/旋转上料机构；拓扑上映射 MEC 分流与本地工控网策略。',
+  },
+  {
+    id: 'hw_material_push',
+    label: '物料推送模块',
+    tag: '输送',
+    description: '推料/输送机构；拓扑上映射边缘节点与本地算力卸载。',
+  },
+  {
+    id: 'hw_position_push',
+    label: '定位推送模块',
+    tag: '定位',
+    description: '定位推送工装；拓扑上映射 MEC 分流规则。',
+  },
+  {
+    id: 'hw_industrial_camera',
+    label: '工业相机模块',
+    tag: '视觉',
+    description:
+      '工业相机/视觉检测终端（与 RedCap 别名中视觉关键字匹配的终端）。',
+  },
+  {
+    id: 'hw_pneumatic_gripper',
+    label: '气动伸缩夹爪模块',
+    tag: '执行',
+    description:
+      '末端夹爪与机械臂同域控制；与四轴臂类终端同一 RedCap 分组逻辑。',
+  },
+  {
+    id: 'hw_lift_module',
+    label: '升降机模块',
+    tag: '提升',
+    description: '顶升/升降机构；拓扑上映射 MEC 边缘节点。',
+  },
+  {
+    id: 'hw_edge_compute',
+    label: '边缘计算单元模块',
     tag: '边缘',
-    description: '边缘算力接入点',
-  },
-  {
-    kind: 'mec_rule',
-    label: 'MEC 分流规则',
-    tag: '边缘',
-    description: '分流与卸载策略',
-  },
-  {
-    kind: 'vn_group',
-    label: '5G LAN VN',
-    tag: '局域',
-    description: '虚拟网络组',
+    description: '现场边缘算力与本地卸载节点（MEC）。',
   },
 ]
+
+/** Palette entries tied to RedCap — tailored hint when no matching terminals. */
+const PALETTE_REDCAP_ARM_IDS = new Set<HardwarePaletteId>([
+  'hw_robot_4axis',
+  'hw_pneumatic_gripper',
+])
+const PALETTE_REDCAP_CAMERA_IDS = new Set<HardwarePaletteId>([
+  'hw_industrial_camera',
+])
+
+function paletteNeedsRedcapDeviceHint(id: HardwarePaletteId): boolean {
+  return PALETTE_REDCAP_ARM_IDS.has(id) || PALETTE_REDCAP_CAMERA_IDS.has(id)
+}
 
 function parseKey(key: string): { kind: NodeKind; id: string } | null {
   const [prefix, ...rest] = key.split(':')
@@ -259,22 +323,30 @@ export function DeviceTopologyPanel({
     (key: string): string => {
       const p = parseKey(key)
       if (!p) return key
-      if (p.kind === 'anchor_core') return '专网核心'
+      if (p.kind === 'anchor_core') return '5G 专网核心'
       if (p.kind === 'slice') {
-        return lookup.sliceById.get(p.id)?.displayName ?? `切片 ${p.id.slice(0, 6)}`
+        const name =
+          lookup.sliceById.get(p.id)?.displayName ?? p.id.slice(0, 8)
+        return `产线切片 · ${name}`
       }
       if (p.kind === 'redcap_device') {
         const d = lookup.deviceById.get(p.id)
-        return d ? d.alias : `终端 ${p.id.slice(0, 6)}`
+        const alias = d?.alias ?? p.id.slice(0, 8)
+        if (isIndustrialCameraAlias(alias)) return `工业相机模块 · ${alias}`
+        if (isRoboticArmAlias(alias)) return `机械臂 · ${alias}`
+        return `工业终端 · ${alias}`
       }
       if (p.kind === 'mec_node') {
-        return lookup.mecById.get(p.id)?.nodeName ?? `MEC ${p.id.slice(0, 6)}`
+        const name = lookup.mecById.get(p.id)?.nodeName ?? p.id.slice(0, 8)
+        return `边缘计算单元模块 · ${name}`
       }
       if (p.kind === 'mec_rule') {
-        return lookup.ruleById.get(p.id)?.name ?? `规则 ${p.id.slice(0, 6)}`
+        const name = lookup.ruleById.get(p.id)?.name ?? p.id.slice(0, 8)
+        return `边缘分流 · ${name}`
       }
       if (p.kind === 'vn_group') {
-        return lookup.vnById.get(p.id)?.displayName ?? `VN ${p.id.slice(0, 6)}`
+        const name = lookup.vnById.get(p.id)?.displayName ?? p.id.slice(0, 8)
+        return `工业子网 · ${name}`
       }
       return key
     },
@@ -423,35 +495,52 @@ export function DeviceTopologyPanel({
     message.success('已从当前配置同步拓扑节点')
   }
 
-  const keysForPaletteKind = (kind: NodeKind): string[] => {
-    switch (kind) {
-      case 'anchor_core':
-        return ['core:anchor']
-      case 'slice':
-        return slices.map((s) => `slice:${s.id}`)
-      case 'redcap_device':
-        return devices.map((d) => `redcap:${d.id}`)
-      case 'mec_node':
-        return mecNodes.map((n) => `mec_node:${n.id}`)
-      case 'mec_rule':
-        return rules.map((r) => `mec_rule:${r.id}`)
-      case 'vn_group':
-        return vns.map((v) => `vn:${v.id}`)
-      default:
-        return []
-    }
-  }
+  const keysForHardwarePalette = useCallback(
+    (id: HardwarePaletteId): string[] => {
+      switch (id) {
+        case 'hw_ring_module':
+          return ['core:anchor', ...slices.map((s) => `slice:${s.id}`)]
+        case 'hw_robot_4axis':
+        case 'hw_pneumatic_gripper':
+          return devices
+            .filter((d) => isRoboticArmAlias(d.alias))
+            .map((d) => `redcap:${d.id}`)
+        case 'hw_water_injector':
+          return vns.map((v) => `vn:${v.id}`)
+        case 'hw_rotary_feed':
+        case 'hw_position_push':
+          return rules.map((r) => `mec_rule:${r.id}`)
+        case 'hw_material_push':
+        case 'hw_lift_module':
+        case 'hw_edge_compute':
+          return mecNodes.map((n) => `mec_node:${n.id}`)
+        case 'hw_industrial_camera':
+          return devices
+            .filter((d) => isIndustrialCameraAlias(d.alias))
+            .map((d) => `redcap:${d.id}`)
+        default:
+          return []
+      }
+    },
+    [slices, devices, mecNodes, rules, vns],
+  )
 
-  const addKeysFromPalette = (kind: NodeKind) => {
+  const addKeysFromPalette = (id: HardwarePaletteId) => {
     if (!editable) {
       message.warning('查看者无权编辑拓扑布局')
       return
     }
-    const add = keysForPaletteKind(kind).filter(
+    const add = keysForHardwarePalette(id).filter(
       (k) => !stored.placedKeys.includes(k),
     )
     if (add.length === 0) {
-      message.info('该类型节点已全部在画布上')
+      if (paletteNeedsRedcapDeviceHint(id)) {
+        message.info(
+          '当前没有匹配该类别的终端，或已全部在画布上。可使用「同步配置」加载全部对象。',
+        )
+      } else {
+        message.info('该类型节点已全部在画布上，或配置中暂无对应资源')
+      }
       return
     }
     const nextKeys = [...stored.placedKeys, ...add]
@@ -471,8 +560,8 @@ export function DeviceTopologyPanel({
     message.success(`已添加 ${add.length} 个节点`)
   }
 
-  const onPaletteDragStart = (e: React.DragEvent, kind: NodeKind) => {
-    e.dataTransfer.setData('application/topo-kind', kind)
+  const onPaletteDragStart = (e: React.DragEvent, id: HardwarePaletteId) => {
+    e.dataTransfer.setData('application/topo-hw', id)
     e.dataTransfer.effectAllowed = 'copy'
   }
 
@@ -485,18 +574,22 @@ export function DeviceTopologyPanel({
   const onCanvasDrop = (e: React.DragEvent) => {
     if (!editable) return
     e.preventDefault()
-    const kind = e.dataTransfer.getData(
-      'application/topo-kind',
-    ) as NodeKind
-    if (!kind || !PALETTE.find((p) => p.kind === kind)) return
+    const id = e.dataTransfer.getData('application/topo-hw') as HardwarePaletteId
+    if (!id || !HARDWARE_PALETTE.some((p) => p.id === id)) return
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const x = Math.max(0, e.clientX - rect.left - NODE_W / 2)
     const y = Math.max(0, e.clientY - rect.top - NODE_H / 2)
-    const add = keysForPaletteKind(kind).filter(
+    const add = keysForHardwarePalette(id).filter(
       (k) => !stored.placedKeys.includes(k),
     )
     if (add.length === 0) {
-      message.info('该类型节点已全部在画布上')
+      if (paletteNeedsRedcapDeviceHint(id)) {
+        message.info(
+          '当前没有匹配该类别的终端，或已全部在画布上。可使用「同步配置」加载全部对象。',
+        )
+      } else {
+        message.info('该类型节点已全部在画布上，或配置中暂无对应资源')
+      }
       return
     }
     const positions = { ...stored.positions }
@@ -579,14 +672,14 @@ export function DeviceTopologyPanel({
                         当前为只读（查看者）
                       </Typography.Text>
                     )}
-                    {PALETTE.map((p) => (
+                    {HARDWARE_PALETTE.map((p) => (
                       <button
-                        key={p.kind}
+                        key={p.id}
                         type="button"
                         className="device-topology-palette-item"
                         draggable={editable}
-                        onDragStart={(e) => onPaletteDragStart(e, p.kind)}
-                        onClick={() => addKeysFromPalette(p.kind)}
+                        onDragStart={(e) => onPaletteDragStart(e, p.id)}
+                        onClick={() => addKeysFromPalette(p.id)}
                         disabled={!editable}
                         title={p.description}
                       >
@@ -602,7 +695,7 @@ export function DeviceTopologyPanel({
             ]}
           />
           <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 12 }}>
-            将模块拖入右侧画布，或点击快速添加。边线依据配置自动推导：灰=待贯通，绿=已满足。
+            从模块库拖入<strong>产线硬件与网络要素</strong>，或点击快速添加。边线仍由平台配置自动推导：灰=待贯通，绿=已满足。
           </Typography.Paragraph>
         </aside>
 

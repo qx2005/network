@@ -6,80 +6,11 @@ import { buildMecRuleCommitReport } from '../domain/provision-report.builder';
 
 @Injectable()
 export class MecService {
-  private nodes: MecNode[] = [
-    {
-      id: 'mec-1',
-      nodeName: '产线1-MEC-UPF',
-      n6LocalEndpoint: '10.10.0.3:2152',
-      dnnIds: ['dnn-vision.private', 'dnn-plc.private'],
-      capabilityTags: ['N6_BREAKOUT', 'LCL'],
-      healthProbe: 'http://10.10.0.3:8080/health',
-    },
-    {
-      id: 'mec-packaging-ai',
-      nodeName: '包装车间-AI质检边缘节点',
-      n6LocalEndpoint: '10.10.1.50:2152',
-      dnnIds: ['dnn-vision.private'],
-      capabilityTags: ['N6_BREAKOUT', 'GPU_ACCEL'],
-      healthProbe: 'http://10.10.1.50:9090/health',
-    },
-  ];
+  /** Demo: no pre-seeded MEC assets (robot-arm-only inventory). */
+  /** 演示：不预置 MEC（当前演示数据仅保留机械臂场景）。 */
+  private nodes: MecNode[] = [];
 
-  private rules: MecOffloadRule[] = [
-    {
-      id: 'rule-glass-local',
-      priority: 10,
-      name: '玻瓶/酒液杂质图像本地卸载',
-      enabled: true,
-      match: {
-        destIpCidrs: ['10.45.1.0/24'],
-        srcIpCidrs: [],
-        protocol: 'TCP',
-        portRanges: ['8080-8090'],
-      },
-      action: {
-        actionType: 'LOCAL_BREAKOUT',
-        nextHop: '10.10.1.50',
-        bypassPublicNetwork: true,
-      },
-      hitCount: 2845102,
-    },
-    {
-      id: 'rule-spindle-s7',
-      priority: 20,
-      name: '灌装主轴与送瓶机协同信令',
-      enabled: true,
-      match: {
-        destIpCidrs: ['0.0.0.0/0'],
-        srcIpCidrs: [],
-        protocol: 'TCP',
-        portRanges: ['102'],
-      },
-      action: {
-        actionType: 'LOCAL_BREAKOUT',
-        nextHop: '10.10.0.10',
-        bypassPublicNetwork: true,
-      },
-      hitCount: 9144320,
-    },
-    {
-      id: 'rule-cellar-transit',
-      priority: 100,
-      name: '基酒库可燃气体上报透传',
-      enabled: true,
-      match: {
-        destIpCidrs: ['0.0.0.0/0'],
-        srcIpCidrs: ['10.45.3.0/24'],
-        protocol: 'ANY',
-        portRanges: [],
-      },
-      action: {
-        actionType: 'LOCAL_BREAKOUT',
-        bypassPublicNetwork: false,
-      },
-      hitCount: 54201,
-    },
-  ];
+  private rules: MecOffloadRule[] = [];
 
   constructor(private readonly audit: AuditService) {}
 

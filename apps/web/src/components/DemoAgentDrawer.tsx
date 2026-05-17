@@ -10,9 +10,18 @@ const STEP_THINK_MS = 2000
 export type DeviceNameSelectOption = { label: string; value: string }
 
 /** Default device preset when parent does not pass `deviceSelectOptions`. */
-/** 父组件未传入 `deviceSelectOptions` 时的默认设备预设。 */
+/** 父组件未传入 `deviceSelectOptions` 时的默认设备预设（与拓扑模块库一致扩展项）。 */
 const DEFAULT_DEVICE_SELECT_OPTIONS: DeviceNameSelectOption[] = [
-  { label: '机械臂', value: '机械臂' },
+  { label: '环形模块', value: '环形模块' },
+  { label: '四轴机械臂模块', value: '四轴机械臂模块' },
+  { label: '注水机', value: '注水机' },
+  { label: '旋转供料模块', value: '旋转供料模块' },
+  { label: '物料推送模块', value: '物料推送模块' },
+  { label: '定位推送模块', value: '定位推送模块' },
+  { label: '工业相机模块', value: '工业相机模块' },
+  { label: '气动伸缩夹爪模块', value: '气动伸缩夹爪模块' },
+  { label: '升降机模块', value: '升降机模块' },
+  { label: '边缘计算单元模块', value: '边缘计算单元模块' },
 ]
 
 /** Optional first step: simulate Agent deriving playbook fields from a device name. */
@@ -20,8 +29,8 @@ const DEFAULT_DEVICE_SELECT_OPTIONS: DeviceNameSelectOption[] = [
 export type DeviceNameAgentStepConfig = {
   buildGenerateScript: (deviceName: string) => string[]
   buildFieldRows: (deviceName: string) => PlaybookFieldRow[]
-  /** Device name dropdown; omit to use the default single option「机械臂」. */
-  /** 设备名称下拉项；省略时仅「机械臂」一项。 */
+  /** Device name dropdown; omit to use default options（产线硬件模块项）. */
+  /** 设备名称下拉项；省略时使用默认列表。 */
   deviceSelectOptions?: DeviceNameSelectOption[]
 }
 
@@ -35,10 +44,10 @@ export type DemoAgentDrawerProps = {
   fieldRows: PlaybookFieldRow[]
   /** Optional step before “加载方案参数”: user enters device name → scripted “generation”. */
   deviceNameStep?: DeviceNameAgentStepConfig
-  /** Lines staged before API call */
-  preScript: string[]
+  /** Lines staged before API call (or resolver using execute context when device step is on). */
+  preScript: string[] | ((ctx?: AgentExecuteContext) => string[])
   /** Lines staged after API success */
-  postScript: string[]
+  postScript: string[] | ((ctx?: AgentExecuteContext) => string[])
   /** Single async action: mutations with playbook orchestration header */
   /** 单次异步动作：带编排通道头的写入请求；开启 deviceNameStep 时会传入 deviceName。 */
   onExecute: (ctx?: AgentExecuteContext) => Promise<void>
@@ -118,7 +127,10 @@ export function DemoAgentDrawer({
         key: `row-${i}-${row.label}`,
         label: row.label,
         children: (
-          <Typography.Paragraph style={{ margin: 0, whiteSpace: 'pre-wrap' }} copyable>
+          <Typography.Paragraph
+            style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+            copyable
+          >
             {row.value}
           </Typography.Paragraph>
         ),
@@ -151,7 +163,9 @@ export function DemoAgentDrawer({
         setStep(0)
       }
 
-      await runScript(preScript)
+      await runScript(
+        typeof preScript === 'function' ? preScript(execCtx) : preScript,
+      )
       await sleep(STEP_THINK_MS)
       setStep(hasDeviceStep ? 2 : 1)
 
@@ -159,7 +173,9 @@ export function DemoAgentDrawer({
       await sleep(STEP_THINK_MS)
       setStep(hasDeviceStep ? 3 : 2)
 
-      await runScript(postScript)
+      await runScript(
+        typeof postScript === 'function' ? postScript(execCtx) : postScript,
+      )
       await sleep(STEP_THINK_MS)
       setStep(hasDeviceStep ? 4 : 3)
 
@@ -197,11 +213,12 @@ export function DemoAgentDrawer({
         </Typography.Title>
       }
       placement="right"
-      width={880}
+      width={960}
       open={open}
       onClose={running ? undefined : onClose}
       destroyOnHidden
       zIndex={1150}
+      styles={{ body: { overflowX: 'hidden' } }}
       footer={
         <div style={{ textAlign: 'right' }}>
           <Button onClick={onClose} disabled={running} style={{ marginRight: 8 }}>
@@ -214,8 +231,20 @@ export function DemoAgentDrawer({
       }
     >
       <Steps size="small" current={step} style={{ marginBottom: 16 }} items={stepItems} />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div>
+      <div
+        style={{
+          display: 'grid',
+          // minmax(0,1fr) prevents log lines from blowing out column width / horizontal scroll.
+          // minmax(0,1fr) 避免长日志撑裂列宽导致整体横向滚动。
+          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+          gap: 16,
+          alignItems: 'start',
+          width: '100%',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
+        }}
+      >
+        <div style={{ minWidth: 0, maxWidth: '100%' }}>
           {hasDeviceStep ? (
             <>
               <Typography.Text strong>设备名称</Typography.Text>
@@ -246,11 +275,16 @@ export function DemoAgentDrawer({
             <Collapse
               size="small"
               items={collapseItems}
-              style={{ marginTop: 8, maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}
+              style={{
+                marginTop: 8,
+                maxHeight: 'calc(100vh - 280px)',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+              }}
             />
           ) : null}
         </div>
-        <div>
+        <div style={{ minWidth: 0, maxWidth: '100%' }}>
           <Typography.Text strong>执行日志</Typography.Text>
           <pre
             ref={logRef}
@@ -261,6 +295,9 @@ export function DemoAgentDrawer({
               maxHeight: 'calc(100vh - 280px)',
               overflow: 'auto',
               fontSize: 12,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              overflowWrap: 'anywhere',
             }}
           >
             {logText || '（点击「开始执行」）'}

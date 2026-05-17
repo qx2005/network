@@ -55,7 +55,7 @@ export class FiveGlanController {
   }
 
   @Delete('vn/:id')
-  @Roles('admin')
+  @Roles('operator', 'admin')
   deleteVn(@Param('id') id: string, @Headers('x-user-id') userId?: string) {
     this.vn.removeVn(id, userId ?? 'system');
     return { ok: true };

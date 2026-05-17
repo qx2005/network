@@ -59,7 +59,16 @@ export function getSlicePayloadSemanticIssues(
       'SST=2（uRLLC）时，5QI 须在 uRLLC 资源类型范围内（65–69、80–83）',
     );
   }
-  if (s.sst === 1 && isUrllcFiveQi(s.fiveQi)) {
+  /**
+   * Industrial camera uplink slice in product doc: SST=1 + 5QI=80 is explicit; allow this combination.
+   * 《5G-A数据》工业相机大上行：SST=1（eMBB）+ 5QI=80（机器视觉协同）为文档字面量，与通用「eMBB 禁用 uRLLC 5QI」并存时需放行。
+   */
+  const embbAllowedSharedVisionFiveQi = new Set([80]);
+  if (
+    s.sst === 1 &&
+    isUrllcFiveQi(s.fiveQi) &&
+    !embbAllowedSharedVisionFiveQi.has(s.fiveQi)
+  ) {
     issues.push('SST=1（eMBB）与 uRLLC 类型的 5QI 组合不符合策略');
   }
   if (s.dnn.toLowerCase().includes('invalid')) {

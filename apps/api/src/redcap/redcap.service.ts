@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -16,126 +17,55 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+/** eDRX state string shown on terminal row / after profile apply. */
+function edrxStateFromProfile(p: PowerProfile): string {
+  if (p.edrxEnabled === false) {
+    return 'eDRX 关（PSM 主导）';
+  }
+  return `enabled ${p.edrxCycleSeconds}s`;
+}
+
 @Injectable()
 export class RedcapService {
-  private devices: RedCapDevice[] = [
-    {
-      id: 'dev-1',
-      alias: '储罐液位-A1',
-      supi: 'imsi-460001234567890',
-      imeisv: '867400012345678',
-      sliceId: 'slice-vision-embb',
-      vnId: 'vn-line1',
-      ipAddress: '10.45.1.12',
-      rrcState: 'RRC_CONNECTED',
-      signalQuality: 'RSRP -78 dBm',
-      trafficMb: 128,
-      edrxState: 'enabled 40.96s',
-      powerProfileId: 'pp-sensors',
-      lastSeenAt: nowIso(),
-    },
-    {
-      id: 'dev-2',
-      alias: '杀菌温控-B2',
-      supi: 'imsi-460001234567891',
-      sliceId: 'slice-plc-urllc',
-      vnId: 'vn-line1',
-      ipAddress: '10.45.1.13',
-      rrcState: 'RRC_INACTIVE',
-      signalQuality: 'RSRP -82 dBm',
-      trafficMb: 12,
-      edrxState: 'enabled 81.92s',
-      powerProfileId: 'pp-sensors',
-      lastSeenAt: nowIso(),
-    },
-    {
-      id: 'dev-3',
-      alias: '1号线-高速AI灯检相机A',
-      supi: 'imsi-460001234567892',
-      sliceId: 'slice-vision-embb',
-      vnId: 'vn-line1',
-      ipAddress: '10.45.1.55',
-      rrcState: 'RRC_CONNECTED',
-      signalQuality: 'RSRP -65 dBm (极好)',
-      trafficMb: 5120,
-      edrxState: 'enabled 81.92s',
-      powerProfileId: 'pp-gas-report',
-      lastSeenAt: nowIso(),
-    },
-    {
-      id: 'dev-4',
-      alias: '灌装主轴-无线PLC终端',
-      supi: 'imsi-460001234567893',
-      sliceId: 'slice-plc-urllc',
-      vnId: 'vn-fill01',
-      ipAddress: '10.45.1.82',
-      rrcState: 'RRC_CONNECTED',
-      signalQuality: 'RSRP -71 dBm (良好)',
-      trafficMb: 256,
-      edrxState: 'enabled 81.92s',
-      powerProfileId: 'pp-gas-report',
-      lastSeenAt: nowIso(),
-    },
-    {
-      id: 'dev-5',
-      alias: '窖池温湿度传感-042区',
-      supi: 'imsi-460001234567894',
-      sliceId: 'slice-plc-urllc',
-      vnId: 'vn-line1',
-      ipAddress: '10.45.3.15',
-      rrcState: 'RRC_INACTIVE',
-      signalQuality: 'RSRP -98 dBm (较弱)',
-      trafficMb: 2,
-      edrxState: 'enabled 163.84s',
-      powerProfileId: 'pp-cellar',
-      lastSeenAt: nowIso(),
-    },
-    {
-      id: 'dev-6',
-      alias: '基酒区-可燃气体防爆探头',
-      supi: 'imsi-460001234567895',
-      sliceId: 'slice-plc-urllc',
-      vnId: 'vn-line1',
-      ipAddress: '10.45.3.22',
-      rrcState: 'RRC_IDLE',
-      signalQuality: 'RSRP -82 dBm (中等)',
-      trafficMb: 8,
-      edrxState: 'enabled 81.92s',
-      powerProfileId: 'pp-gas-report',
-      lastSeenAt: nowIso(),
-    },
-  ];
+  /**
+   * Demo seed: empty; devices are onboarded via console or Agent playbook.
+   * 演示种子：默认无终端；省电模板列表仍保留。
+   */
+  private devices: RedCapDevice[] = [];
 
+  /** Only battery / low-power field devices get templates; no eDRX “templates” for mains-fed uRLLC. */
+  /** 仅电池/现场低功耗设备保留省电模板；常电 uRLLC/eMBB 不在此列表生成行。 */
   private profiles: PowerProfile[] = [
     {
-      id: 'pp-sensors',
-      templateName: 'RedCap 传感 — 均衡省电',
-      deviceTypeTag: 'level_meter',
-      edrxCycleSeconds: 40.96,
-      ptwSeconds: 2.56,
-      drxMs: 320,
-      psmEnabled: false,
-      heartbeatRecommendedSeconds: 30,
-    },
-    {
-      id: 'pp-cellar',
-      templateName: '窖池长待机模板',
-      deviceTypeTag: 'cellar_sensor',
+      id: 'pp-env-sensor',
+      templateName: '环境传感 — 电池长周期',
+      deviceTypeTag: 'env_sensor',
       edrxCycleSeconds: 163.84,
-      ptwSeconds: 5.12,
-      drxMs: 320,
+      ptwSeconds: 10.24,
+      drxMs: 640,
       psmEnabled: true,
       heartbeatRecommendedSeconds: 3600,
     },
     {
-      id: 'pp-gas-report',
-      templateName: '定时上报模板',
-      deviceTypeTag: 'gas_detector',
-      edrxCycleSeconds: 81.92,
+      id: 'pp-asset-tracker',
+      templateName: '资产定位标签 — 均衡省电',
+      deviceTypeTag: 'asset_tracker_tag',
+      edrxCycleSeconds: 262.14,
       ptwSeconds: 2.56,
       drxMs: 320,
       psmEnabled: false,
-      heartbeatRecommendedSeconds: 600,
+      heartbeatRecommendedSeconds: 300,
+    },
+    {
+      id: 'pp-remote-smart-meter',
+      templateName: '厂务远端水电气表 — 深度休眠',
+      deviceTypeTag: 'remote_smart_meter',
+      edrxEnabled: false,
+      edrxCycleSeconds: 0,
+      ptwSeconds: 0,
+      drxMs: 0,
+      psmEnabled: true,
+      heartbeatRecommendedSeconds: 86400,
     },
   ];
 
@@ -170,12 +100,16 @@ export class RedcapService {
     if (profileId && !p) {
       throw new NotFoundException(`未找到省电模板：${profileId}`);
     }
+    const sliceId = body.sliceId?.trim();
+    if (!sliceId) {
+      throw new BadRequestException('须指定关联切片 ID');
+    }
     const row: RedCapDevice = {
       id,
       alias: body.alias?.trim() || '新终端',
       supi: supiNorm,
       imeisv: body.imeisv?.trim(),
-      sliceId: body.sliceId?.trim() || 'slice-vision-embb',
+      sliceId,
       vnId: body.vnId?.trim(),
       ipAddress: body.ipAddress?.trim(),
       rrcState: body.rrcState?.trim() || 'RRC_CONNECTED',
@@ -184,9 +118,7 @@ export class RedcapService {
         typeof body.trafficMb === 'number' && !Number.isNaN(body.trafficMb)
           ? body.trafficMb
           : 0,
-      edrxState: p
-        ? `enabled ${p.edrxCycleSeconds}s`
-        : body.edrxState?.trim() || 'disabled',
+      edrxState: p ? edrxStateFromProfile(p) : body.edrxState?.trim() || 'disabled',
       powerProfileId: p?.id,
       lastSeenAt: nowIso(),
       provenance: demoPlaybook ? 'demo-playbook' : undefined,
@@ -235,13 +167,14 @@ export class RedcapService {
     this.devices[idx] = {
       ...this.devices[idx],
       powerProfileId: profileId,
-      edrxState: `enabled ${p.edrxCycleSeconds}s`,
+      edrxState: edrxStateFromProfile(p),
       lastSeenAt: nowIso(),
     };
     const device = { ...this.devices[idx] };
     const report = buildRedcapPowerApplyReport(deviceId, device.supi, {
       templateName: p.templateName,
       edrxCycleSeconds: p.edrxCycleSeconds,
+      edrxEnabled: p.edrxEnabled,
     });
     this.audit.append({
       actor,
@@ -288,15 +221,17 @@ export class RedcapService {
 
   createProfile(body: Partial<PowerProfile>, actor: string): PowerProfile {
     const id = `pp-${uuidv4().slice(0, 8)}`;
+    const edrxOn = body.edrxEnabled !== false;
     const row: PowerProfile = {
       id,
       templateName: body.templateName ?? 'New Profile',
       deviceTypeTag: body.deviceTypeTag,
-      edrxCycleSeconds: body.edrxCycleSeconds ?? 20.48,
-      ptwSeconds: body.ptwSeconds ?? 2.56,
-      drxMs: body.drxMs ?? 320,
-      psmEnabled: body.psmEnabled ?? false,
-      heartbeatRecommendedSeconds: body.heartbeatRecommendedSeconds ?? 25,
+      edrxEnabled: edrxOn ? undefined : false,
+      edrxCycleSeconds: edrxOn ? (body.edrxCycleSeconds ?? 163.84) : 0,
+      ptwSeconds: edrxOn ? (body.ptwSeconds ?? 10.24) : 0,
+      drxMs: edrxOn ? (body.drxMs ?? 640) : 0,
+      psmEnabled: body.psmEnabled ?? true,
+      heartbeatRecommendedSeconds: body.heartbeatRecommendedSeconds ?? 3600,
     };
     this.profiles.unshift(row);
     this.audit.append({

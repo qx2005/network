@@ -22,9 +22,9 @@ import { FormCreateModal } from '../../components/FormCreateModal'
 import { TruthFeedbackModal } from '../../components/TruthFeedbackModal'
 import {
   PLAYBOOK_REDCAP_DEVICE_BODY,
-  PLAYBOOK_REQUIRED_SLICE_VISION_EMBB,
+  playbookRequiredLinkedSliceId,
+  scriptRedcapPreForAgent,
   SCRIPT_REDCAP_POST,
-  SCRIPT_REDCAP_PRE,
   buildRedcapBodyFromDeviceName,
   redcapPlaybookRows,
   redcapPlaybookRowsFromBody,
@@ -39,8 +39,6 @@ import type {
 } from '../../domain/types'
 
 const newDeviceDefaults = {
-  sliceId: 'slice-vision-embb',
-  vnId: 'vn-line1',
   rrcState: 'RRC_CONNECTED',
   signalQuality: 'RSRP -80 dBm',
   trafficMb: 0,
@@ -321,7 +319,7 @@ export function RedcapDevicesPage() {
           </Card>
           <Card className="form-section-card" size="small" title="网络与状态">
             <Form.Item name="sliceId" label="切片 ID" rules={[{ required: true }]}>
-              <Input placeholder="slice-vision-embb" />
+              <Input placeholder="slice-robot-urllc" />
             </Form.Item>
             <Form.Item name="vnId" label="VN ID（可选）">
               <Input placeholder="vn-line1" />
@@ -373,14 +371,15 @@ export function RedcapDevicesPage() {
           buildFieldRows: (name) => redcapPlaybookRowsFromBody(buildRedcapBodyFromDeviceName(name)),
         }}
         fieldRows={redcapPlaybookRows()}
-        preScript={SCRIPT_REDCAP_PRE}
+        preScript={scriptRedcapPreForAgent}
         postScript={SCRIPT_REDCAP_POST}
         onSuccess={() => void load()}
         onExecute={async (ctx) => {
           const slices = await apiGet<NetworkSlice[]>('/api/slices')
-          if (!slices.some((s) => s.id === PLAYBOOK_REQUIRED_SLICE_VISION_EMBB)) {
+          const requireSliceId = playbookRequiredLinkedSliceId(ctx?.deviceName)
+          if (!slices.some((s) => s.id === requireSliceId)) {
             throw new Error(
-              `缺少文档要求的切片 ID：${PLAYBOOK_REQUIRED_SLICE_VISION_EMBB}，请先在环境中创建该切片或在「切片实例」执行 Agent 配置`,
+              `缺少文档要求的切片 ID：${requireSliceId}，请先在环境中创建该切片或在「切片实例」执行 Agent 配置`,
             )
           }
           const body = ctx?.deviceName

@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { AuditService } from '../audit/audit.service';
 import type { CommitResult, FiveGLanVn } from '../domain/types';
@@ -6,50 +11,9 @@ import { buildFiveGLanVnCommitReport } from '../domain/provision-report.builder'
 
 @Injectable()
 export class FiveGlanService {
-  private vns: FiveGLanVn[] = [
-    {
-      id: 'vn-line1',
-      displayName: '灌装线 1 二层专网',
-      technicalId: '5glan-vn-0001',
-      linkedSliceId: 'slice-vision-embb',
-      ethernetPduAllowed: true,
-      broadcastPolicy: 'LIMITED',
-      multicastPolicy: 'ALLOW',
-      memberIds: ['dev-1', 'dev-2'],
-      status: 'active',
-    },
-    {
-      id: 'vn-fill01',
-      displayName: '1号灌装线 PROFINET 专网',
-      technicalId: '5glan-vn-fill01',
-      linkedSliceId: 'slice-plc-urllc',
-      ethernetPduAllowed: true,
-      broadcastPolicy: 'ALLOW',
-      multicastPolicy: 'LIMITED',
-      memberIds: [
-        'dev-2',
-        'dev-4',
-        'mem-fill-3',
-        'mem-fill-4',
-        'mem-fill-5',
-        'mem-fill-6',
-        'mem-fill-7',
-        'mem-fill-8',
-      ],
-      status: 'active',
-    },
-    {
-      id: 'vn-robot',
-      displayName: '装箱码垛机械臂协同网',
-      technicalId: '5glan-vn-robot',
-      linkedSliceId: 'slice-plc-urllc',
-      ethernetPduAllowed: true,
-      broadcastPolicy: 'LIMITED',
-      multicastPolicy: 'ALLOW',
-      memberIds: ['mem-robot-1', 'mem-robot-2', 'mem-robot-3', 'mem-robot-4'],
-      status: 'active',
-    },
-  ];
+  /** Demo seed: empty; VNs are created via console or Agent playbook. */
+  /** 演示种子：默认无 VN，由控制台或 Agent 剧本创建。 */
+  private vns: FiveGLanVn[] = [];
 
   constructor(private readonly audit: AuditService) {}
 
@@ -78,11 +42,15 @@ export class FiveGlanService {
     if (this.vns.some((v) => v.id === id)) {
       throw new ConflictException(`VN 组 ID 已存在：${id}`);
     }
+    const linkedSliceId = body.linkedSliceId?.trim();
+    if (!linkedSliceId) {
+      throw new BadRequestException('须指定关联切片 ID');
+    }
     const row: FiveGLanVn = {
       id,
       displayName: body.displayName ?? '新虚拟网络',
       technicalId: body.technicalId ?? `5glan-vn-${uuidv4().slice(0, 4)}`,
-      linkedSliceId: body.linkedSliceId ?? 'slice-vision-embb',
+      linkedSliceId,
       ethernetPduAllowed: body.ethernetPduAllowed ?? true,
       broadcastPolicy: body.broadcastPolicy ?? 'LIMITED',
       multicastPolicy: body.multicastPolicy ?? 'ALLOW',

@@ -7,7 +7,7 @@ import { FormCreateModal } from '../../components/FormCreateModal'
 import {
   PLAYBOOK_MEC_NODE_BODY,
   SCRIPT_MEC_NODE_POST,
-  SCRIPT_MEC_NODE_PRE,
+  scriptMecNodePreForAgent,
   buildMecNodeBodyFromDeviceName,
   mecNodePlaybookRows,
   mecNodePlaybookRowsFromBody,
@@ -202,7 +202,7 @@ export function MecNodesPage() {
           buildFieldRows: (name) => mecNodePlaybookRowsFromBody(buildMecNodeBodyFromDeviceName(name)),
         }}
         fieldRows={mecNodePlaybookRows()}
-        preScript={SCRIPT_MEC_NODE_PRE}
+        preScript={scriptMecNodePreForAgent}
         postScript={SCRIPT_MEC_NODE_POST}
         onSuccess={() => void load()}
         onExecute={async (ctx) => {

@@ -25,50 +25,11 @@ function buildSnssai(sst: number, sd?: string | null): string {
 
 @Injectable()
 export class SlicesService {
-  private slices: NetworkSlice[] = [
-    {
-      id: 'slice-vision-embb',
-      displayName: 'AI 智能灯检 eMBB 切片',
-      description:
-        '满足飞步式高速相机 4K 图像实时上行需求',
-      sst: 1,
-      sd: '010501',
-      dnn: 'dnn-vision.private',
-      ladnAllowed: true,
-      ulGbrMbps: 200,
-      dlGbrMbps: 50,
-      ulMbrMbps: 250,
-      dlMbrMbps: 80,
-      ambrMbps: 600,
-      fiveQi: 9,
-      arpLevel: 'medium',
-      memberGroupIds: ['grp-ai-inspection-line1'],
-      status: 'provisioned',
-      version: 2,
-      updatedAt: nowIso(),
-    },
-    {
-      id: 'slice-plc-urllc',
-      displayName: '旋转灌装机 PLC 协同切片',
-      description:
-        '替换高频磨损滑环，保障主轴电机微秒级同步控制',
-      sst: 2,
-      sd: '020888',
-      dnn: 'dnn-plc.private',
-      ladnAllowed: false,
-      ulGbrMbps: 20,
-      dlGbrMbps: 20,
-      ulMbrMbps: 40,
-      dlMbrMbps: 40,
-      ambrMbps: 100,
-      fiveQi: 82,
-      arpLevel: 'high',
-      memberGroupIds: ['grp-filler-spindle-sync'],
-      status: 'provisioned',
-      version: 2,
-      updatedAt: nowIso(),
-    },
-  ];
+  /**
+   * Demo seed: empty; slices are created via console or Agent playbook.
+   * 演示种子：默认无切片，由控制台或 Agent 剧本创建。
+   */
+  private slices: NetworkSlice[] = [];
 
   constructor(
     private readonly audit: AuditService,
@@ -109,11 +70,13 @@ export class SlicesService {
       sd: body.sd ?? null,
       dnn: body.dnn ?? 'dnn-default.private',
       ladnAllowed: body.ladnAllowed ?? false,
-      ulGbrMbps: body.ulGbrMbps ?? 10,
-      dlGbrMbps: body.dlGbrMbps ?? 50,
-      ulMbrMbps: body.ulMbrMbps ?? 20,
-      dlMbrMbps: body.dlMbrMbps ?? 100,
-      ambrMbps: body.ambrMbps ?? 200,
+      /** Industrial vision-friendly default: big uplink GBR. */
+      /** 工业视觉友好缺省：上行 GBR 大于下行。 */
+      ulGbrMbps: body.ulGbrMbps ?? 100,
+      dlGbrMbps: body.dlGbrMbps ?? 20,
+      ulMbrMbps: body.ulMbrMbps ?? 150,
+      dlMbrMbps: body.dlMbrMbps ?? 50,
+      ambrMbps: body.ambrMbps ?? 500,
       fiveQi: body.fiveQi ?? 9,
       arpLevel: body.arpLevel ?? 'medium',
       memberGroupIds: body.memberGroupIds ?? [],
@@ -146,6 +109,10 @@ export class SlicesService {
       version: prev.version + 1,
       updatedAt: nowIso(),
     };
+    const issues = getSlicePayloadSemanticIssues(next);
+    if (issues.length > 0) {
+      throw new BadRequestException(issues.join('; '));
+    }
     this.slices[idx] = next;
     this.audit.append({
       actor,
@@ -164,9 +131,7 @@ export class SlicesService {
     if (idx < 0) throw new NotFoundException(`未找到切片：${id}`);
     const row = this.slices[idx];
     if (row.status === 'provisioned') {
-      throw new BadRequestException(
-        '已下发的切片须先回滚后再删除',
-      );
+      throw new BadRequestException('已下发的切片须先回滚后再删除');
     }
     this.slices.splice(idx, 1);
     this.audit.append({

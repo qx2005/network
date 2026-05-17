@@ -1,15 +1,16 @@
-import { App, Button, Card, Empty, Form, Input, InputNumber, Modal, Skeleton, Space, Switch, Table } from 'antd'
+import { App, Button, Card, Empty, Form, Input, InputNumber, Modal, Skeleton, Space, Switch, Table, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useState } from 'react'
 import { apiGet, apiSend } from '../../api/client'
 import type { PowerProfile } from '../../domain/types'
 
 const newProfileFormDefaults = {
-  edrxCycleSeconds: 40.96,
-  ptwSeconds: 2.56,
-  drxMs: 320,
-  psmEnabled: false,
-  heartbeatRecommendedSeconds: 30,
+  edrxEnabled: true,
+  edrxCycleSeconds: 163.84,
+  ptwSeconds: 10.24,
+  drxMs: 640,
+  psmEnabled: true,
+  heartbeatRecommendedSeconds: 3600,
 } as const
 
 export function PowerProfilesPage() {
@@ -18,6 +19,7 @@ export function PowerProfilesPage() {
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
   const [form] = Form.useForm<PowerProfile>()
+  const edrxOn = Form.useWatch('edrxEnabled', form) ?? true
 
   const closeModal = () => {
     setOpen(false)
@@ -40,9 +42,21 @@ export function PowerProfilesPage() {
   const columns: ColumnsType<PowerProfile> = [
     { title: '模板名', dataIndex: 'templateName' },
     { title: '设备类型标签', dataIndex: 'deviceTypeTag' },
-    { title: 'eDRX 周期 (s)', dataIndex: 'edrxCycleSeconds' },
-    { title: 'PTW (s)', dataIndex: 'ptwSeconds' },
-    { title: 'DRX (ms)', dataIndex: 'drxMs' },
+    {
+      title: 'eDRX 周期 (s)',
+      dataIndex: 'edrxCycleSeconds',
+      render: (_: number, r: PowerProfile) => (r.edrxEnabled === false ? '禁用' : r.edrxCycleSeconds),
+    },
+    {
+      title: 'PTW (s)',
+      dataIndex: 'ptwSeconds',
+      render: (v: number, r: PowerProfile) => (r.edrxEnabled === false ? '—' : v),
+    },
+    {
+      title: 'DRX (ms)',
+      dataIndex: 'drxMs',
+      render: (v: number, r: PowerProfile) => (r.edrxEnabled === false ? '—' : v),
+    },
     {
       title: 'PSM',
       dataIndex: 'psmEnabled',
@@ -53,6 +67,10 @@ export function PowerProfilesPage() {
 
   return (
     <div>
+      <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+        常电 uRLLC / eMBB / 边缘网关类终端应在「终端列表」对设备使用「禁用省电模板」，勿为机械臂、PLC、相机等生成
+        eDRX 行。本页模板面向电池供电的传感、资产定位标签、远端水电气表等低速物联场景。
+      </Typography.Paragraph>
       <Space className="page-toolbar" style={{ marginBottom: 0 }} wrap>
         <Button type="primary" onClick={() => setOpen(true)}>
           新建模板
@@ -119,14 +137,22 @@ export function PowerProfilesPage() {
             </Form.Item>
           </Card>
           <Card className="form-section-card" size="small" title="省电参数">
+            <Form.Item
+              name="edrxEnabled"
+              label="启用 eDRX"
+              valuePropName="checked"
+              tooltip="关闭时适用于 PSM + 超长周期上报：激活期外长 eDRX 无意义。"
+            >
+              <Switch />
+            </Form.Item>
             <Form.Item name="edrxCycleSeconds" label="eDRX 周期 (s)">
-              <InputNumber style={{ width: '100%' }} step={0.01} />
+              <InputNumber style={{ width: '100%' }} step={0.01} disabled={!edrxOn} />
             </Form.Item>
             <Form.Item name="ptwSeconds" label="PTW (s)">
-              <InputNumber style={{ width: '100%' }} step={0.01} />
+              <InputNumber style={{ width: '100%' }} step={0.01} disabled={!edrxOn} />
             </Form.Item>
             <Form.Item name="drxMs" label="DRX (ms)">
-              <InputNumber style={{ width: '100%' }} />
+              <InputNumber style={{ width: '100%' }} disabled={!edrxOn} />
             </Form.Item>
             <Form.Item name="psmEnabled" label="PSM" valuePropName="checked">
               <Switch />

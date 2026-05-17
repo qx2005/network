@@ -7,10 +7,10 @@ import { DemoAgentDrawer } from '../../components/DemoAgentDrawer'
 import { TruthFeedbackModal } from '../../components/TruthFeedbackModal'
 import {
   PLAYBOOK_SLICE_BODY,
-  SCRIPT_SLICE_POST,
-  SCRIPT_SLICE_PRE,
   buildSliceBodyFromDeviceName,
   scriptSliceGenerateFromDevice,
+  scriptSlicePostForAgent,
+  scriptSlicePreForAgent,
   slicePlaybookRows,
   slicePlaybookRowsFromBody,
 } from '../../demo/demoPlaybook'
@@ -153,8 +153,8 @@ export function SlicesListPage() {
             slicePlaybookRowsFromBody(buildSliceBodyFromDeviceName(name)),
         }}
         fieldRows={slicePlaybookRows()}
-        preScript={SCRIPT_SLICE_PRE}
-        postScript={SCRIPT_SLICE_POST}
+        preScript={scriptSlicePreForAgent}
+        postScript={scriptSlicePostForAgent}
         onSuccess={() => {
           void load()
           const created = agentCreatedSliceRef.current
@@ -169,6 +169,12 @@ export function SlicesListPage() {
           const body = ctx?.deviceName
             ? buildSliceBodyFromDeviceName(ctx.deviceName)
             : PLAYBOOK_SLICE_BODY
+          const existing = await apiGet<NetworkSlice[]>('/api/slices')
+          const hit = existing.find((s) => s.id === body.id)
+          if (hit) {
+            agentCreatedSliceRef.current = hit
+            return
+          }
           const slice = await apiSend<NetworkSlice>(
             '/api/slices',
             {

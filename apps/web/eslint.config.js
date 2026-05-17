@@ -18,5 +18,12 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      /**
+       * Off: standard `useEffect(() => { void load() }, [])` data-fetch triggers false positives.
+       * 关闭：_mount 拉取列表是常见模式；该规则将异步里的 setState 也判为违规。
+       */
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])

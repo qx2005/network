@@ -180,10 +180,18 @@ export function buildFiveGLanVnCommitReport(vn: {
 export function buildRedcapPowerApplyReport(
   deviceId: string,
   supi: string,
-  profile: { templateName: string; edrxCycleSeconds: number },
+  profile: {
+    templateName: string;
+    edrxCycleSeconds: number;
+    edrxEnabled?: boolean;
+  },
 ): ProvisionReport {
   const correlationId = uuidv4();
   const completedAt = new Date().toISOString();
+  const ranDetail =
+    profile.edrxEnabled === false
+      ? 'eDRX 未启用：激活期（Active Time / T3324）结束后进入 PSM；超长周期表计依赖周期上报/TAU 唤醒，长 eDRX 周期在激活窗外无意义（gNB 回执）。'
+      : `寻呼与 eDRX 周期对齐：${profile.edrxCycleSeconds} 秒（gNB 回执）。`;
   const steps: SimulatedNeStep[] = [
     {
       ne: 'AMF',
@@ -195,7 +203,7 @@ export function buildRedcapPowerApplyReport(
       ne: 'RAN',
       operation: '无线资源管理',
       status: 'APPLIED',
-      detail: `寻呼与 eDRX 周期对齐：${profile.edrxCycleSeconds} 秒（gNB 回执）。`,
+      detail: ranDetail,
     },
   ];
   return {
