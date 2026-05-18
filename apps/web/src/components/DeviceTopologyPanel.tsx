@@ -333,22 +333,6 @@ function parseKey(key: string): { kind: NodeKind; id: string } | null {
   return kind ? { kind, id } : null
 }
 
-function allEntityKeys(input: {
-  slices: NetworkSlice[]
-  devices: RedCapDevice[]
-  mecNodes: MecNode[]
-  rules: MecOffloadRule[]
-  vns: FiveGLanVn[]
-}): string[] {
-  const keys: string[] = ['core:anchor']
-  for (const s of input.slices) keys.push(`slice:${s.id}`)
-  for (const d of input.devices) keys.push(`redcap:${d.id}`)
-  for (const n of input.mecNodes) keys.push(`mec_node:${n.id}`)
-  for (const r of input.rules) keys.push(`mec_rule:${r.id}`)
-  for (const v of input.vns) keys.push(`vn:${v.id}`)
-  return keys
-}
-
 function autoPositions(keys: string[]): Record<string, { x: number; y: number }> {
   const positions: Record<string, { x: number; y: number }> = {}
   const cols = Math.max(1, Math.ceil(Math.sqrt(keys.length)))
@@ -1150,21 +1134,50 @@ export function DeviceTopologyPanel({
     message.info('画布已清空，可从左侧拖入模块规划拓扑')
   }
 
+  /**
+   * Refresh layout for palette plan nodes only — do NOT dump every API entity onto canvas.
+   * 仅整理模块库规划节点布局；配置态由 props 驱动自动变绿，不把全部切片/终端/MEC/VN 铺到画布。
+   */
   const onSyncAll = () => {
-    const entityKeys = allEntityKeys({ slices, devices, mecNodes, rules, vns })
     const planKeys = stored.placedKeys.filter((k) => k.startsWith('plan:'))
-    const mergedKeys = [...new Set([...planKeys, ...entityKeys])]
-    const positions = { ...autoPositions(entityKeys), ...stored.positions }
-    for (const k of mergedKeys) {
-      if (!positions[k]) positions[k] = { x: GAP, y: GAP }
+    const planPaletteByKey = Object.fromEntries(
+      Object.entries(stored.planPaletteByKey).filter(([k]) => planKeys.includes(k)),
+    ) as Record<string, HardwarePaletteId>
+    const plannedEdges = stored.plannedEdges.filter(
+      (e) => planKeys.includes(e.from) && planKeys.includes(e.to),
+    )
+
+    if (planKeys.length === 0) {
+      const hadLegacyEntityNodes = stored.placedKeys.some((k) => !k.startsWith('plan:'))
+      if (hadLegacyEntityNodes) {
+        persist({
+          placedKeys: [],
+          positions: {},
+          planPaletteByKey: {},
+          plannedEdges: [],
+        })
+        message.info('已清除历史「全量合并」节点；请从模块库拖入模块或使用「一键配置」')
+        return
+      }
+      message.info('请先从模块库拖入模块，或使用「一键配置全部模块」')
+      return
     }
+
+    const auto = autoPositions(planKeys)
+    const positions: Record<string, { x: number; y: number }> = { ...auto }
+    for (const k of planKeys) {
+      if (stored.positions[k]) positions[k] = stored.positions[k]
+    }
+
     persist({
-      placedKeys: mergedKeys,
+      placedKeys: planKeys,
       positions,
-      planPaletteByKey: stored.planPaletteByKey,
-      plannedEdges: stored.plannedEdges,
+      planPaletteByKey,
+      plannedEdges,
     })
-    message.success('已合并当前配置对象（保留规划节点与手绘连线）')
+    message.success(
+      `已同步 ${planKeys.length} 个规划模块布局；点亮状态随后台配置自动更新`,
+    )
   }
 
   const placeModulesOnCanvas = useCallback(
@@ -1417,7 +1430,7 @@ export function DeviceTopologyPanel({
           />
           <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 12 }}>
             无需先有配置即可<strong>拖入或点击</strong>添加规划节点（灰）；按《5G-A数据》Playbook
-            完成该模块下发后节点<strong>变绿</strong>。<strong>「一键配置全部模块」</strong>会同步写入切片、RedCap、MEC 节点/规则与 5G LAN VN。<strong>从模块库拖入、尚未同步后台的节点</strong>可拖回左侧模块库。点<strong>「连线规划」</strong>后拖线连接；点<strong>「删除连线」</strong>后点击规划线删除。灰色虚线为配置推导边，细点划线为手绘规划边。
+            完成该模块下发后节点<strong>变绿</strong>（状态自动读取后台，无需把全部配置对象铺到画布）。<strong>「一键配置全部模块」</strong>会写入切片、RedCap、MEC 与 5G LAN。<strong>「同步配置」</strong>仅整理当前画布上规划模块的布局并清理历史全量节点。<strong>从模块库拖入的节点</strong>可拖回左侧模块库。点<strong>「连线规划」</strong>后拖线连接；点<strong>「删除连线」</strong>后点击规划线删除。细点划线为手绘规划连线。
           </Typography.Paragraph>
         </aside>
 
@@ -1432,7 +1445,7 @@ export function DeviceTopologyPanel({
               className="device-topology-empty"
               description={
                 <span>
-                  画布为空。请从左侧<strong>拖入</strong>模块做拓扑规划（无需已有配置），或通过「同步配置」合并后台对象。
+                  画布为空。请从左侧<strong>拖入</strong>模块做拓扑规划，或使用「一键配置全部模块」。
                 </span>
               }
             />
