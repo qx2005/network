@@ -448,6 +448,16 @@ body {
 .device-topology-palette {
   flex: 0 0 220px;
   max-width: 240px;
+  border-radius: 12px;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.device-topology-palette.is-return-target {
+  box-shadow: inset 0 0 0 2px rgba(13, 148, 136, 0.35);
+  background: rgba(240, 253, 250, 0.28);
 }
 
 .device-topology-palette .ant-collapse > .ant-collapse-item > .ant-collapse-header {
@@ -479,6 +489,21 @@ body {
 
 .device-topology-palette-item:active:not(:disabled) {
   cursor: grabbing;
+}
+
+.device-topology-palette-item.is-dragging-out {
+  opacity: 0.42;
+  border-color: rgba(45, 212, 191, 0.55);
+  background: rgba(240, 253, 250, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(13, 148, 136, 0.12);
+}
+
+.device-topology-palette-item.is-return-slot {
+  border-color: rgba(45, 212, 191, 0.75);
+  background: rgba(240, 253, 250, 0.72);
+  box-shadow:
+    0 0 0 2px rgba(13, 148, 136, 0.18),
+    0 4px 14px rgba(13, 148, 136, 0.1);
 }
 
 .device-topology-palette-item:disabled {
@@ -530,6 +555,69 @@ body {
   top: 0;
   pointer-events: none;
   z-index: 0;
+}
+
+.device-topology-edges--overlay {
+  z-index: 3;
+}
+
+.device-topology-edges--overlay .device-topology-wire-draft {
+  pointer-events: none;
+}
+
+.device-topology-edges--overlay .device-topology-plan-edge-hit {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.device-topology-canvas-wrap.is-wire-mode .device-topology-canvas {
+  z-index: 4;
+}
+
+.device-topology-canvas-wrap.is-wire-delete-mode .device-topology-canvas {
+  z-index: 2;
+}
+
+.device-topology-canvas-wrap.is-wire-delete-mode .device-topology-edges--overlay {
+  z-index: 5;
+}
+
+.device-topology-canvas-wrap.is-wire-delete-mode {
+  cursor: default;
+}
+
+.device-topology-canvas-wrap.is-wire-delete-mode .device-topology-node {
+  cursor: default;
+}
+
+.device-topology-canvas-wrap.is-wire-delete-mode .device-topology-plan-edge-hit {
+  cursor: pointer;
+}
+
+.device-topology-edges--overlay .device-topology-plan-edge-hit:hover {
+  stroke: rgba(220, 38, 38, 0.22);
+}
+
+.device-topology-wire-draft {
+  stroke: #3b82f6;
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.device-topology-canvas-wrap.is-wire-mode .device-topology-node {
+  cursor: crosshair;
+}
+
+.device-topology-node.is-wire-source {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  border-color: #3b82f6;
+}
+
+.device-topology-node.is-wire-target {
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.45);
+  border-color: #0d9488;
 }
 
 .device-topology-canvas {
@@ -629,6 +717,54 @@ body {
 .device-topology-legend-line.is-pending {
   border-top-style: dashed;
   opacity: 0.75;
+}
+
+.device-topology-node.is-plan-drag-source {
+  opacity: 0.38;
+  border: 2px dashed rgba(45, 212, 191, 0.62);
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: none;
+  transition:
+    opacity 0.16s ease,
+    border-color 0.16s ease,
+    background 0.16s ease;
+}
+
+.device-topology-drag-ghost {
+  position: fixed;
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: min(196px, calc(100vw - 24px));
+  padding: 10px 12px;
+  margin: 0;
+  border: 1px dashed rgba(45, 212, 191, 0.78);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow:
+    0 10px 28px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(13, 148, 136, 0.08);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  cursor: grabbing;
+  animation: topo-drag-ghost-in 0.14s ease-out;
+}
+
+@keyframes topo-drag-ghost-in {
+  from {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.device-topology-legend-line.thin {
+  border-top-width: 1px;
 }
 
 @media (max-width: 992px) {
