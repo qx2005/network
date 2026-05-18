@@ -26,6 +26,7 @@ import { createPortal } from 'react-dom'
 import { getRole } from '../api/client'
 import {
   PLAYBOOK_SLICE_ID_EDGE_COMPUTE,
+  PLAYBOOK_SLICE_ID_ELEVATOR_URLLC,
   PLAYBOOK_SLICE_ID_FILLER_URLLC,
   PLAYBOOK_SLICE_ID_GRIPPER_URLLC,
   PLAYBOOK_SLICE_ID_POS_PUSHER_URLLC,
@@ -35,6 +36,11 @@ import {
   PLAYBOOK_SLICE_ID_ROTARY_URLLC,
   PLAYBOOK_SLICE_ID_VISION_EMBB,
 } from '../demo/demoPlaybook'
+import { buildTopologyBatchProvisionReport } from '../demo/demoTopologyBatchReport'
+import type { TopologyBatchProvisionResult } from '../demo/topologyBatchPlaybook'
+import type { ProvisionReport } from '../domain/types'
+import { TopologyBatchAgentDrawer } from './TopologyBatchAgentDrawer'
+import { TruthFeedbackModal } from './TruthFeedbackModal'
 import type {
   FiveGLanVn,
   MecNode,
@@ -77,9 +83,6 @@ type HardwarePaletteId =
 type TopoNodeState = 'inactive' | 'placed' | 'active' | 'error'
 
 type EdgeState = 'pending' | 'ok' | 'error'
-
-/** 《5G-A数据.md》入库升降机 uRLLC（Playbook 未接前本地常量对齐文档 ID）. */
-const SLICE_ELEVATOR_URLLC = 'slice-elevator-urllc'
 
 export type PlannedTopoEdge = { id: string; from: string; to: string }
 
@@ -180,8 +183,8 @@ function isPaletteModuleReady(id: HardwarePaletteId, slices: NetworkSlice[], dev
       )
     case 'hw_lift_module':
       return (
-        isSliceProvisioned(slices, SLICE_ELEVATOR_URLLC) &&
-        hasDeviceOnSlice(devices, SLICE_ELEVATOR_URLLC)
+        isSliceProvisioned(slices, PLAYBOOK_SLICE_ID_ELEVATOR_URLLC) &&
+        hasDeviceOnSlice(devices, PLAYBOOK_SLICE_ID_ELEVATOR_URLLC)
       )
     case 'hw_edge_compute':
       return (
@@ -288,6 +291,30 @@ const HARDWARE_PALETTE: PaletteDef[] = [
 
 function paletteDefById(id: HardwarePaletteId): PaletteDef | undefined {
   return HARDWARE_PALETTE.find((p) => p.id === id)
+}
+
+/** Place canvas nodes for selected module labels only / 仅为所选模块标签补规划节点. */
+function ensurePaletteModulesOnCanvasForLabels(
+  stored: TopologyStored,
+  moduleLabels: string[],
+): TopologyStored {
+  const present = new Set(Object.values(stored.planPaletteByKey))
+  const placedKeys = [...stored.placedKeys]
+  const planPaletteByKey = { ...stored.planPaletteByKey }
+  for (const label of moduleLabels) {
+    const pal = HARDWARE_PALETTE.find((p) => p.label === label)
+    if (!pal || present.has(pal.id)) continue
+    const id = `plan:${crypto.randomUUID()}`
+    placedKeys.push(id)
+    planPaletteByKey[id] = pal.id
+    present.add(pal.id)
+  }
+  return {
+    ...stored,
+    placedKeys,
+    planPaletteByKey,
+    positions: { ...autoPositions(placedKeys), ...stored.positions },
+  }
 }
 
 function parseKey(key: string): { kind: NodeKind; id: string } | null {
@@ -483,6 +510,8 @@ export interface DeviceTopologyPanelProps {
   mecNodes: MecNode[]
   rules: MecOffloadRule[]
   vns: FiveGLanVn[]
+  /** Reload dashboard aggregates after batch Playbook / 批量配置后刷新概览数据. */
+  onDataRefresh?: () => Promise<void>
 }
 
 export function DeviceTopologyPanel({
@@ -491,9 +520,14 @@ export function DeviceTopologyPanel({
   mecNodes,
   rules,
   vns,
+  onDataRefresh,
 }: DeviceTopologyPanelProps) {
   const { message } = App.useApp()
   const editable = getRole() !== 'viewer'
+
+  const [batchAgentOpen, setBatchAgentOpen] = useState(false)
+  const [fbOpen, setFbOpen] = useState(false)
+  const [fbReport, setFbReport] = useState<ProvisionReport | null>(null)
 
   const [stored, setStored] = useState<TopologyStored>(() => {
     const s = loadStored()
@@ -1133,6 +1167,13 @@ export function DeviceTopologyPanel({
     message.success('已合并当前配置对象（保留规划节点与手绘连线）')
   }
 
+  const placeModulesOnCanvas = useCallback(
+    (labels: string[]) => {
+      persist(ensurePaletteModulesOnCanvasForLabels(stored, labels))
+    },
+    [persist, stored],
+  )
+
   const onPaletteDragStart = (e: React.DragEvent, id: HardwarePaletteId) => {
     e.dataTransfer.setData('application/topo-hw', id)
     e.dataTransfer.effectAllowed = 'copy'
@@ -1172,9 +1213,11 @@ export function DeviceTopologyPanel({
           ? 'var(--app-status-green, #16a34a)'
           : 'rgba(100,116,139,0.45)'
       const isPlan = edge.origin === 'plan'
+      // Plan edge: dotted while pending; solid green when both ends active (same as config ok).
+      // 规划边：未贯通为点划线；两端已就绪后与配置边一致为绿色实线。
       const strokeDasharray =
-        edge.state === 'ok' ? (isPlan ? '5 4' : undefined) : isPlan ? '3 7' : '6 4'
-      const strokeWidth = isPlan ? 1.75 : 2
+        edge.state === 'ok' ? undefined : isPlan ? '3 7' : '6 4'
+      const strokeWidth = edge.state === 'ok' ? 2 : isPlan ? 1.75 : 2
       return (
         <line
           key={edge.id}
@@ -1243,6 +1286,7 @@ export function DeviceTopologyPanel({
     : undefined
 
   return (
+    <>
     <Card
       className="device-topology-card"
       size="small"
@@ -1290,6 +1334,20 @@ export function DeviceTopologyPanel({
               删除连线
             </Button>
           ) : null}
+          <Button
+            size="small"
+            type="primary"
+            onClick={() => {
+              if (!editable) {
+                message.warning('查看者无权执行批量配置')
+                return
+              }
+              setBatchAgentOpen(true)
+            }}
+            disabled={!editable}
+          >
+            一键配置全部模块
+          </Button>
           <Button size="small" onClick={onSyncAll} disabled={!editable}>
             同步配置
           </Button>
@@ -1359,7 +1417,7 @@ export function DeviceTopologyPanel({
           />
           <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 12 }}>
             无需先有配置即可<strong>拖入或点击</strong>添加规划节点（灰）；按《5G-A数据》Playbook
-            完成该模块下发后节点<strong>变绿</strong>。<strong>从模块库拖入、尚未同步后台的节点</strong>可拖回左侧模块库。点<strong>「连线规划」</strong>后拖线连接；点<strong>「删除连线」</strong>后点击规划线删除。灰色虚线为配置推导边，细点划线为手绘规划边。
+            完成该模块下发后节点<strong>变绿</strong>。<strong>「一键配置全部模块」</strong>会同步写入切片、RedCap、MEC 节点/规则与 5G LAN VN。<strong>从模块库拖入、尚未同步后台的节点</strong>可拖回左侧模块库。点<strong>「连线规划」</strong>后拖线连接；点<strong>「删除连线」</strong>后点击规划线删除。灰色虚线为配置推导边，细点划线为手绘规划边。
           </Typography.Paragraph>
         </aside>
 
@@ -1479,5 +1537,25 @@ export function DeviceTopologyPanel({
           document.body,
         )}
     </Card>
+    <TopologyBatchAgentDrawer
+      open={batchAgentOpen}
+      onClose={() => setBatchAgentOpen(false)}
+      onPlaceModules={placeModulesOnCanvas}
+      onSuccess={async () => {
+        await onDataRefresh?.()
+      }}
+      onProvisionComplete={(labels: string[], result: TopologyBatchProvisionResult) => {
+        setBatchAgentOpen(false)
+        setFbReport(buildTopologyBatchProvisionReport(labels, result))
+        setFbOpen(true)
+      }}
+    />
+    <TruthFeedbackModal
+      open={fbOpen}
+      title="拓扑批量配置 — 配置回执"
+      report={fbReport}
+      onClose={() => setFbOpen(false)}
+    />
+    </>
   )
 }

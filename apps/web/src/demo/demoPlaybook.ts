@@ -33,6 +33,9 @@ export const PLAYBOOK_SLICE_ID_GRIPPER_URLLC = 'slice-gripper-urllc'
 /** Wireless edge compute unit collaborative slice — matches 《5G-A数据.md》「边缘计算单元协同专属切片」. */
 export const PLAYBOOK_SLICE_ID_EDGE_COMPUTE = 'slice-edge-compute'
 
+/** AS/RS warehouse elevator uRLLC — matches 《5G-A数据.md》「入库升降机协同 uRLLC 切片」. */
+export const PLAYBOOK_SLICE_ID_ELEVATOR_URLLC = 'slice-elevator-urllc'
+
 export const PLAYBOOK_SLICE_BODY = {
   id: PLAYBOOK_SLICE_ID_ROBOT_URLLC,
   displayName: '机械臂 uRLLC 切片',
@@ -236,6 +239,29 @@ export const PLAYBOOK_SLICE_BODY_EDGE_COMPUTE = {
   memberGroupIds: ['grp-edge-compute'],
 }
 
+/**
+ * Frozen payload: warehouse elevator collaborative uRLLC (AS/RS lift).
+ * 与《5G-A数据.md》「入库升降机协同 uRLLC 切片」段落逐项一致。
+ */
+export const PLAYBOOK_SLICE_BODY_ELEVATOR = {
+  id: PLAYBOOK_SLICE_ID_ELEVATOR_URLLC,
+  displayName: '入库升降机协同 uRLLC 切片',
+  description:
+    '用于立体仓库（AS/RS）入库升降机的垂直运动控制与高精度平层定位。要求极高可靠性与低时延，确保变频器驱动指令精准下发，杜绝越位冲顶或与货架发生碰撞事故。',
+  sst: 2,
+  sd: '020888',
+  dnn: 'dnn-elevator.private',
+  ladnAllowed: true,
+  ulGbrMbps: 15,
+  dlGbrMbps: 15,
+  ulMbrMbps: 40,
+  dlMbrMbps: 40,
+  ambrMbps: 150,
+  fiveQi: 82,
+  arpLevel: 'high' as const,
+  memberGroupIds: ['grp-warehouse-elevators'],
+}
+
 export type DemoAgentSliceBody = {
   id: string
   displayName: string
@@ -315,6 +341,14 @@ export function isEdgeComputeUnitModuleAgentSelection(deviceName: string): boole
 }
 
 /**
+ * Agent preset: 「升降机模块」→ 文档「入库升降机协同 uRLLC」整条链路（与拓扑库选项一致）。
+ */
+export function isLiftModuleAgentSelection(deviceName: string): boolean {
+  const t = deviceName.trim()
+  return t === '升降机模块' || t === '升降机'
+}
+
+/**
  * Agent preset: 「四轴机械臂模块」— 与演示种子 slice-robot-urllc / vn-line1 对齐（同 uRLLC 020666 + dnn-robot）。
  * 列表仅展示显示名与 S-NSSAI，易与派生 slice-agent-* 误认；此处固定技术 ID 避免 VN 前置校验失败。
  */
@@ -355,6 +389,7 @@ export function demoAgentSliceIdForDeviceName(deviceName: string): string {
   if (isIndustrialCameraAgentSelection(n)) return PLAYBOOK_SLICE_ID_VISION_EMBB
   if (isPneumaticGripperModuleAgentSelection(n)) return PLAYBOOK_SLICE_ID_GRIPPER_URLLC
   if (isEdgeComputeUnitModuleAgentSelection(n)) return PLAYBOOK_SLICE_ID_EDGE_COMPUTE
+  if (isLiftModuleAgentSelection(n)) return PLAYBOOK_SLICE_ID_ELEVATOR_URLLC
   if (isRobotArmModuleAgentSelection(n)) return PLAYBOOK_SLICE_ID_ROBOT_URLLC
   const { tag } = deviceLabelAndTag(n, PLAYBOOK_SLICE_BODY.displayName)
   return demoPlaybookDerivedSliceIdFromTag(tag)
@@ -371,6 +406,7 @@ export function demoAgentVnIdForDeviceName(deviceName: string): string {
   if (isIndustrialCameraAgentSelection(n)) return 'vn-vision-lan'
   if (isPneumaticGripperModuleAgentSelection(n)) return 'vn-gripper-lan'
   if (isEdgeComputeUnitModuleAgentSelection(n)) return 'vn-edge-compute-lan'
+  if (isLiftModuleAgentSelection(n)) return 'vn-elevator-lan'
   if (isRobotArmModuleAgentSelection(n)) return 'vn-line1'
   const { tag } = deviceLabelAndTag(n, PLAYBOOK_SLICE_BODY.displayName)
   return vnAgentBundleIdFromTag(tag)
@@ -508,6 +544,20 @@ export const PLAYBOOK_REDCAP_DEVICE_BODY_EDGE_COMPUTE = {
   powerProfileId: PLAYBOOK_POWER_PROFILE_DISABLE,
 }
 
+/** 《5G-A数据.md》入库升降机 — 连接新终端. */
+export const PLAYBOOK_REDCAP_DEVICE_BODY_ELEVATOR = {
+  alias: '入库升降机',
+  supi: 'imsi-460001234560801',
+  imeisv: '867400012345881',
+  sliceId: PLAYBOOK_SLICE_ID_ELEVATOR_URLLC,
+  vnId: 'vn-elevator-lan',
+  ipAddress: '10.53.1.50',
+  rrcState: 'RRC_CONNECTED',
+  signalQuality: 'RSRP -72 dBm',
+  trafficMb: 156,
+  powerProfileId: PLAYBOOK_POWER_PROFILE_DISABLE,
+}
+
 export const PLAYBOOK_MEC_NODE_BODY = {
   nodeName: '机械臂控制边缘节点',
   n6LocalEndpoint: '10.10.2.10:2152',
@@ -586,6 +636,15 @@ export const PLAYBOOK_MEC_NODE_BODY_EDGE_COMPUTE = {
   dnnIds: ['dnn-edge-compute.private'],
   capabilityTags: ['N6_BREAKOUT', 'Edge_Computing_GPU', 'Data_Aggregation'],
   healthProbe: 'http://10.10.11.10:8080/health_edge',
+}
+
+/** 《5G-A数据.md》入库升降机 — 注册节点. */
+export const PLAYBOOK_MEC_NODE_BODY_ELEVATOR = {
+  nodeName: '入库升降机控制边缘网关',
+  n6LocalEndpoint: '10.10.10.10:2152',
+  dnnIds: ['dnn-elevator.private'],
+  capabilityTags: ['N6_BREAKOUT', 'uRLLC_Optimized', 'L2_Bridging'],
+  healthProbe: 'http://10.10.10.10:8080/health_elevator',
 }
 
 export const PLAYBOOK_MEC_RULE_BODY = {
@@ -758,6 +817,25 @@ export const PLAYBOOK_MEC_RULE_BODY_EDGE_COMPUTE = {
   },
 }
 
+/** 《5G-A数据.md》入库升降机 — 新建规则（UDP+TCP → protocol ANY，端口顺序同文档）. */
+export const PLAYBOOK_MEC_RULE_BODY_ELEVATOR = {
+  priority: 15,
+  name: '入库升降机变频驱动指令本地卸载',
+  enabled: true,
+  match: {
+    destIpCidrs: ['10.53.2.0/24'],
+    srcIpCidrs: [] as string[],
+    protocol: 'ANY' as const,
+    portRanges: ['34964', '44818'],
+    vnId: 'vn-elevator-lan',
+  },
+  action: {
+    actionType: 'LOCAL_BREAKOUT' as const,
+    nextHop: '10.10.10.10',
+    bypassPublicNetwork: true,
+  },
+}
+
 export const PLAYBOOK_VN_BODY = {
   id: 'vn-line1',
   displayName: '装箱码垛机械臂 PROFINET 专网',
@@ -853,6 +931,18 @@ export const PLAYBOOK_VN_BODY_GRIPPER = {
   memberIds: ['imsi-460001234560701', 'imsi-460001234560702'],
 }
 
+/** 《5G-A数据.md》入库升降机 — 新建 VN 组. */
+export const PLAYBOOK_VN_BODY_ELEVATOR = {
+  id: 'vn-elevator-lan',
+  displayName: '入库升降机专属专网',
+  technicalId: '5glan-vn-elevator-lan',
+  linkedSliceId: PLAYBOOK_SLICE_ID_ELEVATOR_URLLC,
+  ethernetPduAllowed: true,
+  broadcastPolicy: 'ALLOW' as const,
+  multicastPolicy: 'ALLOW' as const,
+  memberIds: ['imsi-460001234560801', 'imsi-460001234560802'],
+}
+
 /** 《5G-A数据.md》边缘计算单元 — 新建 VN 组（成员仅文档所列 SUPI）. */
 export const PLAYBOOK_VN_BODY_EDGE_COMPUTE = {
   id: 'vn-edge-compute-lan',
@@ -942,6 +1032,9 @@ export function buildSliceBodyFromDeviceName(deviceName: string): DemoAgentSlice
   }
   if (isEdgeComputeUnitModuleAgentSelection(deviceName)) {
     return { ...PLAYBOOK_SLICE_BODY_EDGE_COMPUTE }
+  }
+  if (isLiftModuleAgentSelection(deviceName)) {
+    return { ...PLAYBOOK_SLICE_BODY_ELEVATOR }
   }
   if (isRobotArmModuleAgentSelection(deviceName)) {
     const { label } = deviceLabelAndTag(deviceName, PLAYBOOK_SLICE_BODY.displayName)
@@ -1087,6 +1180,9 @@ export function buildRedcapBodyFromDeviceName(deviceName: string): typeof PLAYBO
   if (isEdgeComputeUnitModuleAgentSelection(deviceName)) {
     return { ...PLAYBOOK_REDCAP_DEVICE_BODY_EDGE_COMPUTE }
   }
+  if (isLiftModuleAgentSelection(deviceName)) {
+    return { ...PLAYBOOK_REDCAP_DEVICE_BODY_ELEVATOR }
+  }
   if (isRobotArmModuleAgentSelection(deviceName)) {
     return { ...PLAYBOOK_REDCAP_DEVICE_BODY }
   }
@@ -1219,6 +1315,9 @@ export function buildMecNodeBodyFromDeviceName(deviceName: string): typeof PLAYB
   if (isEdgeComputeUnitModuleAgentSelection(deviceName)) {
     return { ...PLAYBOOK_MEC_NODE_BODY_EDGE_COMPUTE }
   }
+  if (isLiftModuleAgentSelection(deviceName)) {
+    return { ...PLAYBOOK_MEC_NODE_BODY_ELEVATOR }
+  }
   if (isRobotArmModuleAgentSelection(deviceName)) {
     return { ...PLAYBOOK_MEC_NODE_BODY }
   }
@@ -1347,7 +1446,8 @@ export function buildMecRuleBodyFromDeviceName(
   | typeof PLAYBOOK_MEC_RULE_BODY_POS_PUSHER
   | typeof PLAYBOOK_MEC_RULE_BODY_VISION_EMBB
   | typeof PLAYBOOK_MEC_RULE_BODY_GRIPPER
-  | typeof PLAYBOOK_MEC_RULE_BODY_EDGE_COMPUTE {
+  | typeof PLAYBOOK_MEC_RULE_BODY_EDGE_COMPUTE
+  | typeof PLAYBOOK_MEC_RULE_BODY_ELEVATOR {
   if (isRingModuleAgentSelection(deviceName)) {
     return { ...PLAYBOOK_MEC_RULE_BODY_RINGLINE }
   }
@@ -1371,6 +1471,9 @@ export function buildMecRuleBodyFromDeviceName(
   }
   if (isEdgeComputeUnitModuleAgentSelection(deviceName)) {
     return { ...PLAYBOOK_MEC_RULE_BODY_EDGE_COMPUTE }
+  }
+  if (isLiftModuleAgentSelection(deviceName)) {
+    return { ...PLAYBOOK_MEC_RULE_BODY_ELEVATOR }
   }
   if (isRobotArmModuleAgentSelection(deviceName)) {
     return { ...PLAYBOOK_MEC_RULE_BODY }
@@ -1471,7 +1574,8 @@ export function vnPlaybookRowsFromBody(
     | typeof PLAYBOOK_VN_BODY_POS_PUSHER
     | typeof PLAYBOOK_VN_BODY_VISION_EMBB
     | typeof PLAYBOOK_VN_BODY_GRIPPER
-    | typeof PLAYBOOK_VN_BODY_EDGE_COMPUTE,
+    | typeof PLAYBOOK_VN_BODY_EDGE_COMPUTE
+    | typeof PLAYBOOK_VN_BODY_ELEVATOR,
 ): PlaybookFieldRow[] {
   return [
     { label: 'VN 组 ID / 技术 ID', value: `${b.id} / ${b.technicalId}` },
@@ -1499,7 +1603,8 @@ export function buildVnBodyFromDeviceName(
   | typeof PLAYBOOK_VN_BODY_POS_PUSHER
   | typeof PLAYBOOK_VN_BODY_VISION_EMBB
   | typeof PLAYBOOK_VN_BODY_GRIPPER
-  | typeof PLAYBOOK_VN_BODY_EDGE_COMPUTE {
+  | typeof PLAYBOOK_VN_BODY_EDGE_COMPUTE
+  | typeof PLAYBOOK_VN_BODY_ELEVATOR {
   if (isRingModuleAgentSelection(deviceName)) {
     return { ...PLAYBOOK_VN_BODY_RINGLINE }
   }
@@ -1523,6 +1628,9 @@ export function buildVnBodyFromDeviceName(
   }
   if (isEdgeComputeUnitModuleAgentSelection(deviceName)) {
     return { ...PLAYBOOK_VN_BODY_EDGE_COMPUTE }
+  }
+  if (isLiftModuleAgentSelection(deviceName)) {
+    return { ...PLAYBOOK_VN_BODY_ELEVATOR }
   }
   if (isRobotArmModuleAgentSelection(deviceName)) {
     const { label } = deviceLabelAndTag(deviceName, PLAYBOOK_VN_BODY.displayName)

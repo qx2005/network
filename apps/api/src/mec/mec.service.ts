@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { AuditService } from '../audit/audit.service';
 import type { CommitResult, MecNode, MecOffloadRule } from '../domain/types';
 import { buildMecRuleCommitReport } from '../domain/provision-report.builder';
+import { syntheticMecRuleHitCount } from '../domain/mec-hit-mock';
 
 @Injectable()
 export class MecService {
@@ -60,7 +61,23 @@ export class MecService {
   }
 
   listRules(): MecOffloadRule[] {
+    this.backfillDemoRuleHitCounts();
     return [...this.rules].sort((a, b) => a.priority - b.priority);
+  }
+
+  /** Lazy mock hits for playbook rules created before hit simulation existed. */
+  private backfillDemoRuleHitCounts(): void {
+    this.rules = this.rules.map((r) => {
+      if (r.hitCount > 0) return r;
+      if (r.provenance !== 'demo-playbook' || !r.enabled) return r;
+      return {
+        ...r,
+        hitCount: syntheticMecRuleHitCount({
+          name: r.name,
+          priority: r.priority,
+        }),
+      };
+    });
   }
 
   createRule(
@@ -69,10 +86,12 @@ export class MecService {
     demoPlaybook = false,
   ): CommitResult<MecOffloadRule> {
     const id = `rule-${uuidv4().slice(0, 8)}`;
+    const priority = body.priority ?? 100;
+    const name = body.name ?? '分流规则';
     const row: MecOffloadRule = {
       id,
-      priority: body.priority ?? 100,
-      name: body.name ?? '分流规则',
+      priority,
+      name,
       enabled: body.enabled ?? true,
       match: body.match ?? {
         destIpCidrs: [],
@@ -84,7 +103,9 @@ export class MecService {
         actionType: 'LOCAL_BREAKOUT',
         bypassPublicNetwork: true,
       },
-      hitCount: 0,
+      hitCount: demoPlaybook
+        ? syntheticMecRuleHitCount({ name, priority })
+        : 0,
       provenance: demoPlaybook ? 'demo-playbook' : undefined,
     };
     this.rules.unshift(row);

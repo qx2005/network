@@ -1,5 +1,5 @@
 import { Card, Col, Row, Skeleton, Space, Statistic, Typography } from 'antd'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { apiGet } from '../api/client'
 import { StatusDistributionBar } from '../components/DashboardChart'
 import { DeviceTopologyPanel } from '../components/DeviceTopologyPanel'
@@ -19,6 +19,23 @@ export function DashboardPage() {
   const [vns, setVns] = useState<FiveGLanVn[]>([])
   const [err, setErr] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
+
+  const loadOverview = useCallback(async () => {
+    const [s, d, mn, r, v] = await Promise.all([
+      apiGet<NetworkSlice[]>('/api/slices'),
+      apiGet<RedCapDevice[]>('/api/redcap/devices'),
+      apiGet<MecNode[]>('/api/mec/nodes'),
+      apiGet<MecOffloadRule[]>('/api/mec/rules'),
+      apiGet<FiveGLanVn[]>('/api/five-glan/vn'),
+    ])
+    setSlices(s)
+    setDevices(d)
+    setMecNodes(mn)
+    setRules(r)
+    setVns(v)
+    setLoaded(true)
+    setErr(null)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -178,6 +195,7 @@ export function DashboardPage() {
               mecNodes={mecNodes}
               rules={rules}
               vns={vns}
+              onDataRefresh={loadOverview}
             />
           </>
         )}
